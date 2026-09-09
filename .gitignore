@@ -4,3 +4,10 @@
 config.js
 coverage
 dist
+
+# Local-only notes and settings (CLAUDE.md itself IS committed — it's the shared,
+# non-personal project context. Anything personal goes in CLAUDE.local.md.)
+CLAUDE.local.md
+.claude/settings.local.json
+.env.local
+*.local
