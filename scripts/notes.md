@@ -45,3 +45,11 @@ wait
 ```
 
 Terminal waits until commands are done rather than instantly exiting after running everything. This is necessary because it is running in the background (&)
+
+## generatePizzaData.sh
+
+```bash
+  token=$(echo $response | jq -r 'if any(.user.roles[]?; .role == "admin") then .token else empty end' 2>/dev/null)
+```
+
+jq is json query. It filters through json.

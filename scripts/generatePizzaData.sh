@@ -6,8 +6,19 @@ if [ -z "$1" ]; then
 fi
 host=$1
 
-response=$(curl -s -X PUT $host/api/auth -d '{"email":"a@jwt.com", "password":"admin"}' -H 'Content-Type: application/json')
-token=$(echo $response | jq -r '.token')
+# On a brand-new database the service creates the default admin without awaiting it: first the user
+# row, then (later) its admin role. Logging in too early gets "unknown user", or a token with no admin
+# role, and every admin call below fails with 401. Keep logging in until the admin role shows up.
+for _ in $(seq 1 120); do
+  response=$(curl -s -X PUT $host/api/auth -d '{"email":"a@jwt.com", "password":"admin"}' -H 'Content-Type: application/json')
+  token=$(echo $response | jq -r 'if any(.user.roles[]?; .role == "admin") then .token else empty end' 2>/dev/null)
+  [ -n "$token" ] && break
+  sleep 0.5
+done
+if [ -z "$token" ]; then
+  echo "Admin login never succeeded: $response"
+  exit 1
+fi
 
 # Add users
 curl -X POST $host/api/auth -d '{"name":"pizza diner", "email":"d@jwt.com", "password":"diner"}' -H 'Content-Type: application/json'
