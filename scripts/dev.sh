@@ -5,6 +5,9 @@ set -euo pipefail
 SERVICE="$(cd "$(dirname "$0")/.." && pwd)"
 WEB="$(cd "$SERVICE/../jwt-pizza" && pwd)"
 
+# However this script ends, stop every process it started.
+trap 'trap - INT TERM EXIT; echo "Stopping..."; kill 0; wait' INT TERM EXIT
+
 (cd "$SERVICE" && npm start) &
 (cd "$WEB" && npm run dev) &
 

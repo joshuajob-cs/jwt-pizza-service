@@ -23,6 +23,12 @@ SERVICE="$(cd "$(dirname "$0")/.." && pwd)"
 Creates a variable that represents a directory so I do not need to type in the directory every time.
 
 ```bash
+trap 'trap - INT TERM EXIT; echo "Stopping..."; kill 0; wait' INT TERM EXIT
+```
+
+Trap runs code when a signal arrives. This Trap is watching for when the code ends (INT TERM EXIT)
+
+```bash
 wait
 ```
 
