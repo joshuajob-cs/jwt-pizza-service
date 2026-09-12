@@ -35,6 +35,12 @@ trap 'trap - INT TERM EXIT; echo "Stopping..."; kill 0; wait' INT TERM EXIT
 Trap runs code when a signal arrives. This Trap is watching for when the code ends (INT TERM EXIT)
 
 ```bash
+(cd "$SERVICE" && npm start 2>&1 | sed -u 's/^/[back] /') &
+```
+
+sed is stream editor. Allows us to add [front] and [back]
+
+```bash
 wait
 ```
 

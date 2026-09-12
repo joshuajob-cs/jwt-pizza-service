@@ -5,21 +5,26 @@ set -euo pipefail
 SERVICE="$(cd "$(dirname "$0")/.." && pwd)"
 WEB="$(cd "$SERVICE/../jwt-pizza" && pwd)"
 
+success() { printf '\033[32m%s\033[0m\n' "$*"; }   # green
+error()   { printf '\033[31m%s\033[0m\n' "$*"; }   # red
+
 # Succeeds if something is listening on the given local port.
 port_busy() { (exec 3<>"/dev/tcp/127.0.0.1/$1") 2>/dev/null; }
 
 # However this script ends, stop every process it started.
 trap 'trap - INT TERM EXIT; echo "Stopping..."; kill 0; wait' INT TERM EXIT
 
-(cd "$SERVICE" && npm start) &
+(cd "$SERVICE" && npm start 2>&1 | sed -u 's/^/[back] /') &
 
 # The frontend is useless without the backend, so give it up to 30s to open port 3000.
 for _ in $(seq 1 60); do
   port_busy 3000 && break
   sleep 0.5
 done
-port_busy 3000 || { echo "Backend did not start on port 3000"; exit 1; }
+port_busy 3000 || { error "Backend did not start on port 3000"; exit 1; }
+success "Backend up  → http://localhost:3000"
 
-(cd "$WEB" && npm run dev) &
+(cd "$WEB" && npm run dev 2>&1 | sed -u 's/^/[front] /') &
+success "Frontend    → http://localhost:5173   (Ctrl+C stops both)"
 
 wait
