@@ -5,5 +5,7 @@ set -euo pipefail
 SERVICE="$(cd "$(dirname "$0")/.." && pwd)"
 WEB="$(cd "$SERVICE/../jwt-pizza" && pwd)"
 
-echo "backend:  $SERVICE"
-echo "frontend: $WEB"
+(cd "$SERVICE" && npm start) &
+(cd "$WEB" && npm run dev) &
+
+wait

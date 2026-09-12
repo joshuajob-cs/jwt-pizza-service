@@ -21,3 +21,9 @@ SERVICE="$(cd "$(dirname "$0")/.." && pwd)"
 ```
 
 Creates a variable that represents a directory so I do not need to type in the directory every time.
+
+```bash
+wait
+```
+
+Terminal waits until commands are done rather than instantly exiting after running everything. This is necessary because it is running in the background (&)
