@@ -14,10 +14,10 @@ This basically declares the file type to be a 'bash' file. Everything else in th
 set -euo pipefail
 ```
 
-TODO: my explanation
+Catches errors when something fails and lets me know.
 
 ```bash
 SERVICE="$(cd "$(dirname "$0")/.." && pwd)"
 ```
 
-Creates a constant variable that represents a directory so I do not need to type in the directory every time.
+Creates a variable that represents a directory so I do not need to type in the directory every time.
