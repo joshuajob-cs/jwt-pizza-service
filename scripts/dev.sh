@@ -11,6 +11,16 @@ error()   { printf '\033[31m%s\033[0m\n' "$*"; }   # red
 # Succeeds if something is listening on the given local port.
 port_busy() { (exec 3<>"/dev/tcp/127.0.0.1/$1") 2>/dev/null; }
 
+# Check what the backend needs before starting anything, so failures have a clear message.
+if ! port_busy 3306; then
+  error "MySQL is not running on port 3306. On Ubuntu: sudo systemctl start mysql"
+  exit 1
+fi
+if [[ ! -f "$SERVICE/src/config.js" ]]; then
+  error "Missing src/config.js. Create it with your database password and factory API key."
+  exit 1
+fi
+
 # However this script ends, stop every process it started.
 trap 'trap - INT TERM EXIT; echo "Stopping..."; kill 0; wait' INT TERM EXIT
 
