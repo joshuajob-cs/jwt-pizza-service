@@ -1,0 +1,23 @@
+# Notes on the scripts
+
+What each line does, in my own words, so I can rebuild these without help.
+
+## dev.sh
+
+```bash
+#!/usr/bin/env bash
+```
+
+This basically declares the file type to be a 'bash' file. Everything else in the file will be read as a bash command.
+
+```bash
+set -euo pipefail
+```
+
+TODO: my explanation
+
+```bash
+SERVICE="$(cd "$(dirname "$0")/.." && pwd)"
+```
+
+Creates a constant variable that represents a directory so I do not need to type in the directory every time.
