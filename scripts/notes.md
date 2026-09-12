@@ -23,6 +23,12 @@ SERVICE="$(cd "$(dirname "$0")/.." && pwd)"
 Creates a variable that represents a directory so I do not need to type in the directory every time.
 
 ```bash
+port_busy() { (exec 3<>"/dev/tcp/127.0.0.1/$1") 2>/dev/null; }
+```
+
+If exec isn't given a command instead of rewriting the process it opens a file. It is using 3 as the file descriptor to open the connection.
+
+```bash
 trap 'trap - INT TERM EXIT; echo "Stopping..."; kill 0; wait' INT TERM EXIT
 ```
 
