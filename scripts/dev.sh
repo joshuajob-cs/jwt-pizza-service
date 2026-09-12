@@ -1,9 +1,13 @@
 #!/usr/bin/env bash
 # Run JWT Pizza locally: backend (:3000) then frontend (:5173).
+#   --reset   drop the local database first, so the backend creates a fresh one
 set -euo pipefail
 
 SERVICE="$(cd "$(dirname "$0")/.." && pwd)"
 WEB="$(cd "$SERVICE/../jwt-pizza" && pwd)"
+
+RESET=false
+[[ "${1:-}" == "--reset" ]] && RESET=true
 
 success() { printf '\033[32m%s\033[0m\n' "$*"; }   # green
 error()   { printf '\033[31m%s\033[0m\n' "$*"; }   # red
@@ -29,6 +33,13 @@ done
 for repo in "$SERVICE" "$WEB"; do
   [[ -d "$repo/node_modules" ]] || (cd "$repo" && npm install)
 done
+
+# The backend only creates its database at startup, so the drop has to happen before it starts.
+if $RESET; then
+  db() { node -p "require('$SERVICE/src/config.js').db.connection.$1"; }
+  MYSQL_PWD="$(db password)" mysql -h "$(db host)" -u "$(db user)" -e "DROP DATABASE IF EXISTS \`$(db database)\`;"
+  success "Dropped database '$(db database)'"
+fi
 
 # However this script ends, stop every process it started.
 trap 'trap - INT TERM EXIT; echo "Stopping..."; kill 0; wait' INT TERM EXIT
