@@ -20,6 +20,15 @@ if [[ ! -f "$SERVICE/src/config.js" ]]; then
   error "Missing src/config.js. Create it with your database password and factory API key."
   exit 1
 fi
+for port in 3000 5173; do
+  if port_busy "$port"; then
+    error "Port $port is already in use (an old run still going?). Free it with: kill \$(lsof -ti :$port)"
+    exit 1
+  fi
+done
+for repo in "$SERVICE" "$WEB"; do
+  [[ -d "$repo/node_modules" ]] || (cd "$repo" && npm install)
+done
 
 # However this script ends, stop every process it started.
 trap 'trap - INT TERM EXIT; echo "Stopping..."; kill 0; wait' INT TERM EXIT
