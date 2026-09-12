@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Run JWT Pizza locally: backend (:3000) then frontend (:5173).
-#   --reset   drop the local database first, so the backend creates a fresh one
+#   --reset   drop the local database first, then seed the fresh one with generatePizzaData.sh
 set -euo pipefail
 
 SERVICE="$(cd "$(dirname "$0")/.." && pwd)"
@@ -36,6 +36,7 @@ done
 
 # The backend only creates its database at startup, so the drop has to happen before it starts.
 if $RESET; then
+  command -v jq >/dev/null || { error "--reset needs jq to seed the database. Install it: sudo apt install jq"; exit 1; }
   db() { node -p "require('$SERVICE/src/config.js').db.connection.$1"; }
   MYSQL_PWD="$(db password)" mysql -h "$(db host)" -u "$(db user)" -e "DROP DATABASE IF EXISTS \`$(db database)\`;"
   success "Dropped database '$(db database)'"
@@ -53,6 +54,16 @@ for _ in $(seq 1 60); do
 done
 port_busy 3000 || { error "Backend did not start on port 3000"; exit 1; }
 success "Backend up  → http://localhost:3000"
+
+if $RESET; then
+  echo "Seeding the fresh database (the backend takes ~20s to finish setting it up)..."
+  if ! seed_output="$("$SERVICE/scripts/generatePizzaData.sh" http://localhost:3000 2>&1)"; then
+    error "Seeding failed:"
+    echo "$seed_output"
+    exit 1
+  fi
+  success "Seeded. Logins: a@jwt.com/admin  d@jwt.com/diner  f@jwt.com/franchisee"
+fi
 
 (cd "$WEB" && npm run dev 2>&1 | sed -u 's/^/[front] /') &
 success "Frontend    → http://localhost:5173   (Ctrl+C stops both)"
