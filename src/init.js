@@ -1,3 +1,9 @@
+/**
+ * @fileoverview Command-line tool that creates an extra admin user directly in the database.
+ *
+ * Usage: `node init.js <name> <email> <password>`. It skips the HTTP API entirely and calls
+ * DB.addUser, which is the only way to create an admin because POST /api/auth always makes diners.
+ */
 const { Role, DB } = require('./database/database.js');
 
 if (process.argv.length < 5) {

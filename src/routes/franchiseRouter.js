@@ -1,3 +1,14 @@
+/**
+ * @fileoverview /api/franchise endpoints: list, create, and delete franchises, and create and delete the
+ * stores inside them.
+ *
+ * Who is allowed:
+ *   - listing franchises: anyone (admins also see each franchise's admins and store revenue)
+ *   - a user's own franchises: that user, or an admin
+ *   - creating a franchise: admin only
+ *   - creating/deleting a store: an admin, or one of that franchise's admins (a franchisee)
+ *   - deleting a franchise: see the NOTE on that route
+ */
 const express = require('express');
 const { DB, Role } = require('../database/database.js');
 const { authRouter } = require('./authRouter.js');
@@ -5,6 +16,7 @@ const { StatusCodeError, asyncHandler } = require('../endpointHelper.js');
 
 const franchiseRouter = express.Router();
 
+/** Endpoint descriptions served by GET /api/docs (see service.js). Keep in sync with the handlers below. */
 franchiseRouter.docs = [
   {
     method: 'GET',
@@ -56,6 +68,12 @@ franchiseRouter.docs = [
 ];
 
 // getFranchises
+/**
+ * [GET] /api/franchise?page&limit&name - one page of franchises, filtered by name (`*` is a wildcard). No auth.
+ * Returns `{ franchises, more }`, where `more` means another page exists.
+ * The menu page uses this to fill the store picker; the admin dashboard uses it for its franchise table.
+ * What each franchise includes depends on who asks (see DB.getFranchises).
+ */
 franchiseRouter.get(
   '/',
   asyncHandler(async (req, res) => {
@@ -65,6 +83,11 @@ franchiseRouter.get(
 );
 
 // getUserFranchises
+/**
+ * [GET] /api/franchise/:userId - the franchises this user is a franchisee of. Requires auth.
+ * Only returns data when you ask about yourself or you are an admin; anyone else gets `[]`, not a 403.
+ * The franchise dashboard calls this. A plain diner gets `[]`, and the page shows its "why franchise" pitch.
+ */
 franchiseRouter.get(
   '/:userId',
   authRouter.authenticateToken,
@@ -80,6 +103,11 @@ franchiseRouter.get(
 );
 
 // createFranchise
+/**
+ * [POST] /api/franchise - create a franchise and make the listed users its franchisees. Admin only (403).
+ * Body: `{ name, admins: [{ email }] }`. 404 if an admin email doesn't belong to a user.
+ * SQL: SELECT user by email (per admin), INSERT INTO franchise, INSERT INTO userRole (per admin).
+ */
 franchiseRouter.post(
   '/',
   authRouter.authenticateToken,
@@ -94,6 +122,14 @@ franchiseRouter.post(
 );
 
 // deleteFranchise
+/**
+ * [DELETE] /api/franchise/:franchiseId - delete a franchise, its stores, and its franchisee roles.
+ * SQL (one transaction): DELETE FROM store, DELETE FROM userRole, DELETE FROM franchise.
+ *
+ * NOTE: unlike every other write route here, this one has no authenticateToken and no admin check,
+ * so any caller, even one who isn't logged in, can delete a franchise. The docs array above claims it
+ * requires auth.
+ */
 franchiseRouter.delete(
   '/:franchiseId',
   asyncHandler(async (req, res) => {
@@ -104,6 +140,13 @@ franchiseRouter.delete(
 );
 
 // createStore
+/**
+ * [POST] /api/franchise/:franchiseId/store - add a store to a franchise. Requires auth.
+ * Allowed for an admin or one of this franchise's admins (403 otherwise). Body: `{ name }`.
+ * SQL: DB.getFranchise's two SELECTs (admins, stores), then INSERT INTO store.
+ * NOTE: DB.getFranchise always returns an object, so `!franchise` is never true; a missing franchise
+ * just has no admins.
+ */
 franchiseRouter.post(
   '/:franchiseId/store',
   authRouter.authenticateToken,
@@ -119,6 +162,11 @@ franchiseRouter.post(
 );
 
 // deleteStore
+/**
+ * [DELETE] /api/franchise/:franchiseId/store/:storeId - close a store. Requires auth.
+ * Same permission check as createStore: an admin or one of this franchise's admins.
+ * SQL: DB.getFranchise's two SELECTs, then DELETE FROM store WHERE franchiseId=? AND id=?
+ */
 franchiseRouter.delete(
   '/:franchiseId/store/:storeId',
   authRouter.authenticateToken,

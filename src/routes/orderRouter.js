@@ -1,3 +1,7 @@
+/**
+ * @fileoverview /api/order endpoints: read and extend the menu, list a diner's orders, and place an
+ * order, which is saved to MySQL and then sent to the JWT Pizza Factory to be "made".
+ */
 const express = require('express');
 const config = require('../config.js');
 const { Role, DB } = require('../database/database.js');
@@ -6,6 +10,7 @@ const { asyncHandler, StatusCodeError } = require('../endpointHelper.js');
 
 const orderRouter = express.Router();
 
+/** Endpoint descriptions served by GET /api/docs (see service.js). Keep in sync with the handlers below. */
 orderRouter.docs = [
   {
     method: 'GET',
@@ -41,6 +46,10 @@ orderRouter.docs = [
 ];
 
 // getMenu
+/**
+ * [GET] /api/order/menu - every pizza on the menu. No auth.
+ * SQL: SELECT * FROM menu
+ */
 orderRouter.get(
   '/menu',
   asyncHandler(async (req, res) => {
@@ -49,6 +58,11 @@ orderRouter.get(
 );
 
 // addMenuItem
+/**
+ * [PUT] /api/order/menu - add a pizza to the menu, then return the whole menu. Admin only (403 otherwise).
+ * Body: `{ title, description, image, price }`.
+ * SQL: INSERT INTO menu ..., then SELECT * FROM menu
+ */
 orderRouter.put(
   '/menu',
   authRouter.authenticateToken,
@@ -64,6 +78,11 @@ orderRouter.put(
 );
 
 // getOrders
+/**
+ * [GET] /api/order?page=N - the logged-in diner's order history, one page at a time. Requires auth.
+ * The diner comes from the token (req.user), never from the URL, so you can only see your own orders.
+ * SQL: SELECT ... FROM dinerOrder WHERE dinerId=? LIMIT ..., then SELECT ... FROM orderItem for each order
+ */
 orderRouter.get(
   '/',
   authRouter.authenticateToken,
@@ -73,6 +92,20 @@ orderRouter.get(
 );
 
 // createOrder
+/**
+ * [POST] /api/order - place an order for the logged-in diner. Requires auth.
+ * Body: `{ franchiseId, storeId, items: [{ menuId, description, price }] }`.
+ *
+ * Steps:
+ *   1. Save the order (DB.addDinerOrder: INSERT dinerOrder, then per item SELECT menu id + INSERT orderItem).
+ *   2. POST the diner and order to the Factory at `${config.factory.url}/api/order`, authenticating with
+ *      this service's factory API key (not the user's token).
+ *   3. The Factory returns a signed pizza JWT; send `{ order, jwt, followLinkToEndChaos }` back.
+ * If the Factory fails, respond 500. The order row stays saved anyway.
+ * `followLinkToEndChaos` is the Factory's report URL, used in the chaos-testing deliverable.
+ *
+ * NOTE: item prices come from the request body as sent by the client; they aren't looked up from the menu.
+ */
 orderRouter.post(
   '/',
   authRouter.authenticateToken,

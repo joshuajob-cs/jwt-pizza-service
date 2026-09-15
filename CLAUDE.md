@@ -171,8 +171,11 @@ flag them.
 - **[../jwt-pizza/](../jwt-pizza/)** — the React/Vite/Tailwind frontend, with its own `CLAUDE.md`
   covering the `navItems` routing hub, the `pizzaService` seam, and the full list of backend calls
   it makes. Its `src/service/httpPizzaService.ts` is the authoritative list of which endpoints here
-  are actually consumed. Its `notes.md` is the blank deliverable 1 worksheet, which needs facts
-  from *this* repo (endpoints + SQL) to fill in.
+  are actually consumed. Its `notes.md` is the deliverable 1 worksheet (activity → endpoint → SQL
+  from *this* repo), and its `docs/` holds the whole-system map and per-activity flow diagrams.
+- **[docs/](docs/)** — this repo's file map, request lifecycle, endpoint table, and database
+  diagrams. Every source file has a `@fileoverview` header and JSDoc; **when code changes, update
+  the comment and the doc that describe it.**
 - **JWT Pizza Factory** — external service at `https://pizza-factory.cs329.click`; also the
   source of the coverage badge in [README.md](README.md).
 - **Course content** — <https://github.com/devops329/devops>, cloned locally alongside this repo.
