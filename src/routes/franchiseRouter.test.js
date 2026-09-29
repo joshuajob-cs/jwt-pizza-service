@@ -70,6 +70,19 @@ test('create store', async () => {
   expect(createRes.body).toEqual({ id: expect.any(Number), franchiseId: franchise.id, name: store.name });
 });
 
+test('delete store', async () => {
+  const { user: owner, token: ownerAuthToken } = await registerUser();
+  const franchise = await createFranchise([owner]);
+  const createRes = await request(app).post(`/api/franchise/${franchise.id}/store`).set('Authorization', `Bearer ${ownerAuthToken}`).send({ name: randomName() });
+
+  const deleteRes = await request(app).delete(`/api/franchise/${franchise.id}/store/${createRes.body.id}`).set('Authorization', `Bearer ${ownerAuthToken}`);
+  expect(deleteRes.status).toBe(200);
+  expect(deleteRes.body).toEqual({ message: 'store deleted' });
+
+  const getRes = await request(app).get(`/api/franchise/${owner.id}`).set('Authorization', `Bearer ${ownerAuthToken}`);
+  expect(getRes.body[0].stores).toEqual([]);
+});
+
 function randomName() {
   return Math.random().toString(36).substring(2, 12);
 }
