@@ -85,20 +85,20 @@ franchiseRouter.get(
 // getUserFranchises
 /**
  * [GET] /api/franchise/:userId - the franchises this user is a franchisee of. Requires auth.
- * Only returns data when you ask about yourself or you are an admin; anyone else gets `[]`, not a 403.
- * The franchise dashboard calls this. A plain diner gets `[]`, and the page shows its "why franchise" pitch.
+ * Allowed when you ask about yourself or you are an admin; anyone else gets a 403.
+ * The franchise dashboard calls this for the logged-in user. A plain diner gets `[]`, and the page shows its
+ * "why franchise" pitch.
  */
 franchiseRouter.get(
   '/:userId',
   authRouter.authenticateToken,
   asyncHandler(async (req, res) => {
-    let result = [];
     const userId = Number(req.params.userId);
-    if (req.user.id === userId || req.user.isRole(Role.Admin)) {
-      result = await DB.getUserFranchises(userId);
+    if (req.user.id !== userId && !req.user.isRole(Role.Admin)) {
+      throw new StatusCodeError('unable to get franchises', 403);
     }
 
-    res.json(result);
+    res.json(await DB.getUserFranchises(userId));
   }),
 );
 

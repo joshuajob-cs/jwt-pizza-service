@@ -83,7 +83,7 @@ deployService.sh      scp/ssh deploy to an EC2 host running pm2 (deliverable 1/2
 | GET | `/api/order` | ✓ | paginated by `config.db.listPerPage` |
 | POST | `/api/order` | ✓ | calls the Factory |
 | GET | `/api/franchise` | — | `?page&limit&name` (`*` → SQL `%`) |
-| GET | `/api/franchise/:userId` | ✓ | self or admin, else `[]` |
+| GET | `/api/franchise/:userId` | ✓ | self or admin, else 403 |
 | POST | `/api/franchise` | ✓ admin | |
 | DELETE | `/api/franchise/:franchiseId` | **none** | see Known issues |
 | POST | `/api/franchise/:franchiseId/store` | ✓ admin or franchise admin | |
