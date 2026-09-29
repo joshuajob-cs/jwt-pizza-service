@@ -79,7 +79,7 @@ franchiseRouter.get(
   asyncHandler(async (req, res) => {
     const [franchises, more] = await DB.getFranchises(req.user, req.query.page, req.query.limit, req.query.name);
     res.json({ franchises, more });
-  })
+  }),
 );
 
 // getUserFranchises
@@ -99,7 +99,7 @@ franchiseRouter.get(
     }
 
     res.json(result);
-  })
+  }),
 );
 
 // createFranchise
@@ -118,7 +118,7 @@ franchiseRouter.post(
 
     const franchise = req.body;
     res.send(await DB.createFranchise(franchise));
-  })
+  }),
 );
 
 // deleteFranchise
@@ -136,7 +136,7 @@ franchiseRouter.delete(
     const franchiseId = Number(req.params.franchiseId);
     await DB.deleteFranchise(franchiseId);
     res.json({ message: 'franchise deleted' });
-  })
+  }),
 );
 
 // createStore
@@ -158,7 +158,7 @@ franchiseRouter.post(
     }
 
     res.send(await DB.createStore(franchise.id, req.body));
-  })
+  }),
 );
 
 // deleteStore
@@ -180,7 +180,7 @@ franchiseRouter.delete(
     const storeId = Number(req.params.storeId);
     await DB.deleteStore(franchiseId, storeId);
     res.json({ message: 'store deleted' });
-  })
+  }),
 );
 
 module.exports = franchiseRouter;

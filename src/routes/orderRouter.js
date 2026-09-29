@@ -54,7 +54,7 @@ orderRouter.get(
   '/menu',
   asyncHandler(async (req, res) => {
     res.send(await DB.getMenu());
-  })
+  }),
 );
 
 // addMenuItem
@@ -74,7 +74,7 @@ orderRouter.put(
     const addMenuItemReq = req.body;
     await DB.addMenuItem(addMenuItemReq);
     res.send(await DB.getMenu());
-  })
+  }),
 );
 
 // getOrders
@@ -88,7 +88,7 @@ orderRouter.get(
   authRouter.authenticateToken,
   asyncHandler(async (req, res) => {
     res.json(await DB.getOrders(req.user, req.query.page));
-  })
+  }),
 );
 
 // createOrder
@@ -123,7 +123,7 @@ orderRouter.post(
     } else {
       res.status(500).send({ message: 'Failed to fulfill order at factory', followLinkToEndChaos: j.reportUrl });
     }
-  })
+  }),
 );
 
 module.exports = orderRouter;

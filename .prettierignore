@@ -1,0 +1,6 @@
+# Prettier skips these, both on format-on-save and on `prettier --write .`
+*.md
+package-lock.json
+dist
+coverage
+public

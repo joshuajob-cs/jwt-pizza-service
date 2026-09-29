@@ -40,7 +40,7 @@ userRouter.get(
   authRouter.authenticateToken,
   asyncHandler(async (req, res) => {
     res.json(req.user);
-  })
+  }),
 );
 
 // updateUser
@@ -64,7 +64,7 @@ userRouter.put(
     const updatedUser = await DB.updateUser(userId, name, email, password);
     const auth = await setAuth(updatedUser);
     res.json({ user: updatedUser, token: auth });
-  })
+  }),
 );
 
 // deleteUser
@@ -74,7 +74,7 @@ userRouter.delete(
   authRouter.authenticateToken,
   asyncHandler(async (req, res) => {
     res.json({ message: 'not implemented' });
-  })
+  }),
 );
 
 // listUsers
@@ -84,7 +84,7 @@ userRouter.get(
   authRouter.authenticateToken,
   asyncHandler(async (req, res) => {
     res.json({ message: 'not implemented', users: [], more: false });
-  })
+  }),
 );
 
 module.exports = userRouter;
