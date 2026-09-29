@@ -1,6 +1,7 @@
 const request = require('supertest');
 const app = require('../service');
 const { DB } = require('../database/database.js');
+const { randomName } = require('./testHelpers.js');
 
 test('get menu', async () => {
   const item = await DB.addMenuItem({ title: randomName(), description: 'test pizza', image: 'pizza1.png', price: 0.0042 });
@@ -9,7 +10,3 @@ test('get menu', async () => {
   expect(menuRes.status).toBe(200);
   expect(menuRes.body).toContainEqual(item);
 });
-
-function randomName() {
-  return Math.random().toString(36).substring(2, 12);
-}

@@ -1,6 +1,7 @@
 const request = require('supertest');
 const app = require('../service');
-const { Role, DB } = require('../database/database.js');
+const { DB } = require('../database/database.js');
+const { randomName, createAdminUser, registerUser } = require('./testHelpers.js');
 
 let adminUser;
 let adminAuthToken;
@@ -149,26 +150,6 @@ test('delete franchise', async () => {
   const listRes = await request(app).get(`/api/franchise?name=${franchise.name}`);
   expect(listRes.body.franchises).toEqual([]);
 });
-
-function randomName() {
-  return Math.random().toString(36).substring(2, 12);
-}
-
-async function createAdminUser() {
-  let user = { password: 'toomanysecrets', roles: [{ role: Role.Admin }] };
-  user.name = randomName();
-  user.email = user.name + '@admin.com';
-
-  user = await DB.addUser(user);
-  return { ...user, password: 'toomanysecrets' };
-}
-
-/** Registers a new diner through the API. Returns `{ user, token }`; user has id, name, and email. */
-async function registerUser() {
-  const newUser = { name: randomName(), email: randomName() + '@test.com', password: 'a' };
-  const registerRes = await request(app).post('/api/auth').send(newUser);
-  return registerRes.body;
-}
 
 /** Creates a franchise as the admin, with `admins` (users with an email) as its franchisees. Returns it with its id. */
 async function createFranchise(admins, name = randomName()) {
