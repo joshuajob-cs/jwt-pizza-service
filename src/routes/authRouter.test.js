@@ -28,6 +28,9 @@ test('logout', async () => {
   const logoutRes = await request(app).delete('/api/auth').set('Authorization', `Bearer ${token}`);
   expect(logoutRes.status).toBe(200);
   expect(logoutRes.body.message).toBe('logout successful');
+
+  const reuseRes = await request(app).delete('/api/auth').set('Authorization', `Bearer ${token}`);
+  expect(reuseRes.status).toBe(401);
 });
 
 function expectValidJwt(potentialJwt) {
