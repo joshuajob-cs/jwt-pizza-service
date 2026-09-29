@@ -45,7 +45,7 @@ test('register', async () => {
   expect(registerRes.body.user.password).toBeUndefined();
 });
 
-test('register without a password', async () => {
+test('register fails without a password', async () => {
   const registerRes = await request(app).post('/api/auth').send({ name: testUser.name, email: testUser.email });
   expect(registerRes.status).toBe(400);
   expect(registerRes.body.message).toBe('name, email, and password are required');
