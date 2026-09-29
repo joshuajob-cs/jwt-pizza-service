@@ -83,6 +83,18 @@ test('delete store', async () => {
   expect(getRes.body[0].stores).toEqual([]);
 });
 
+test('delete franchise', async () => {
+  const franchise = await createFranchise([adminUser]);
+  await request(app).post(`/api/franchise/${franchise.id}/store`).set('Authorization', `Bearer ${adminAuthToken}`).send({ name: randomName() });
+
+  const deleteRes = await request(app).delete(`/api/franchise/${franchise.id}`).set('Authorization', `Bearer ${adminAuthToken}`);
+  expect(deleteRes.status).toBe(200);
+  expect(deleteRes.body).toEqual({ message: 'franchise deleted' });
+
+  const listRes = await request(app).get(`/api/franchise?name=${franchise.name}`);
+  expect(listRes.body.franchises).toEqual([]);
+});
+
 function randomName() {
   return Math.random().toString(36).substring(2, 12);
 }
