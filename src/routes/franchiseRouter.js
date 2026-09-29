@@ -143,8 +143,8 @@ franchiseRouter.delete(
 /**
  * [POST] /api/franchise/:franchiseId/store - add a store to a franchise. Requires auth.
  * Allowed for an admin or one of this franchise's admins (403 otherwise). Body: `{ name }`.
- * SQL: DB.getFranchise's two SELECTs (admins, stores), then INSERT INTO store.
- * NOTE: DB.getFranchise always returns an object, so a missing franchise just has no admins.
+ * SQL: DB.getFranchise's three SELECTs (exists, admins, stores), then INSERT INTO store.
+ * 404 if the franchise doesn't exist (DB.getFranchise throws it).
  */
 franchiseRouter.post(
   '/:franchiseId/store',
@@ -164,7 +164,7 @@ franchiseRouter.post(
 /**
  * [DELETE] /api/franchise/:franchiseId/store/:storeId - close a store. Requires auth.
  * Same permission check as createStore (canManageFranchise): an admin or one of this franchise's admins.
- * SQL: DB.getFranchise's two SELECTs, then DELETE FROM store WHERE franchiseId=? AND id=?
+ * SQL: DB.getFranchise's three SELECTs, then DELETE FROM store WHERE franchiseId=? AND id=?
  */
 franchiseRouter.delete(
   '/:franchiseId/store/:storeId',

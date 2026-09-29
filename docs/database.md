@@ -103,7 +103,7 @@ R = reads, W = writes (INSERT/UPDATE/DELETE).
 | `getOrders` | GET /api/order | | | | | | | R | R |
 | `getFranchises` | GET /api/franchise | R† | R† | | R | R | | R† | R† |
 | `getUserFranchises` | GET /api/franchise/:userId | R | R | | R | R | | R | R |
-| `getFranchise` | the two above, store routes | R | R | | | R | | R | R |
+| `getFranchise` | the two above, store routes | R | R | | R | R | | R | R |
 | `createFranchise` | POST /api/franchise | R | W | | W | | | | |
 | `deleteFranchise` | DELETE /api/franchise/:id | | W | | W | W | | | |
 | `createStore` / `deleteStore` | store routes | | | | | W | | | |

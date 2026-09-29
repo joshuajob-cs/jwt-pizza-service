@@ -378,16 +378,23 @@ class DB {
   /**
    * Fills in a franchise object's `admins` and `stores` (each store with its total revenue). Modifies and
    * returns the object passed in, which only needs an `id`.
-   * SQL: SELECT u.id, u.name, u.email FROM userRole AS ur JOIN user AS u ON u.id=ur.userId WHERE ur.objectId=? AND ur.role='franchisee'
+   * SQL: SELECT id FROM franchise WHERE id=?  (existence check)
+   *      SELECT u.id, u.name, u.email FROM userRole AS ur JOIN user AS u ON u.id=ur.userId WHERE ur.objectId=? AND ur.role='franchisee'
    *      SELECT s.id, s.name, COALESCE(SUM(oi.price), 0) AS totalRevenue FROM dinerOrder AS do JOIN orderItem AS oi ON do.id=oi.orderId RIGHT JOIN store AS s ON s.id=do.storeId WHERE s.franchiseId=? GROUP BY s.id
    * How the revenue query works: join orders to their items, then RIGHT JOIN stores so a store with no orders
    * still appears; SUM adds up item prices per store, and COALESCE turns "no orders" (NULL) into 0.
    * @param {{id: number}} franchise
-   * @returns {Promise<object>} the same object, always (never null, even when the id doesn't exist)
+   * @returns {Promise<object>} the same object, with `admins` and `stores` filled in
+   * @throws {StatusCodeError} 404 'franchise not found' when no franchise has this id
    */
   async getFranchise(franchise) {
     const connection = await this.getConnection();
     try {
+      const franchiseResult = await this.query(connection, `SELECT id FROM franchise WHERE id=?`, [franchise.id]);
+      if (franchiseResult.length === 0) {
+        throw new StatusCodeError('franchise not found', 404);
+      }
+
       franchise.admins = await this.query(connection, `SELECT u.id, u.name, u.email FROM userRole AS ur JOIN user AS u ON u.id=ur.userId WHERE ur.objectId=? AND ur.role='franchisee'`, [franchise.id]);
 
       franchise.stores = await this.query(
