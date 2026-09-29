@@ -22,7 +22,10 @@ test('login', async () => {
 });
 
 test('logout', async () => {
-  const logoutRes = await request(app).delete('/api/auth').set('Authorization', `Bearer ${testUserAuthToken}`);
+  const loginRes = await request(app).put('/api/auth').send(testUser);
+  const token = loginRes.body.token;
+
+  const logoutRes = await request(app).delete('/api/auth').set('Authorization', `Bearer ${token}`);
   expect(logoutRes.status).toBe(200);
 });
 
