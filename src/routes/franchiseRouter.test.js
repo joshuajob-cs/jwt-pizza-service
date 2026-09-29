@@ -60,6 +60,16 @@ test('get user franchises', async () => {
   expect(getRes.body).toEqual([{ id: franchise.id, name: franchise.name, admins: [{ id: owner.id, name: owner.name, email: owner.email }], stores: [] }]);
 });
 
+test('create store', async () => {
+  const { user: owner, token: ownerAuthToken } = await registerUser();
+  const franchise = await createFranchise([owner]);
+
+  const store = { name: randomName() };
+  const createRes = await request(app).post(`/api/franchise/${franchise.id}/store`).set('Authorization', `Bearer ${ownerAuthToken}`).send(store);
+  expect(createRes.status).toBe(200);
+  expect(createRes.body).toEqual({ id: expect.any(Number), franchiseId: franchise.id, name: store.name });
+});
+
 function randomName() {
   return Math.random().toString(36).substring(2, 12);
 }
