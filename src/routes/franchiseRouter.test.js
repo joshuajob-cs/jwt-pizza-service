@@ -70,6 +70,16 @@ test('create store', async () => {
   expect(createRes.body).toEqual({ id: expect.any(Number), franchiseId: franchise.id, name: store.name });
 });
 
+test('create store fails for a non-owner', async () => {
+  const { user: owner } = await registerUser();
+  const franchise = await createFranchise([owner]);
+  const { token: strangerAuthToken } = await registerUser();
+
+  const createRes = await request(app).post(`/api/franchise/${franchise.id}/store`).set('Authorization', `Bearer ${strangerAuthToken}`).send({ name: randomName() });
+  expect(createRes.status).toBe(403);
+  expect(createRes.body.message).toBe('unable to create a store');
+});
+
 test('delete store', async () => {
   const { user: owner, token: ownerAuthToken } = await registerUser();
   const franchise = await createFranchise([owner]);
