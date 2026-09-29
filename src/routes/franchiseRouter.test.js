@@ -126,6 +126,16 @@ test('delete store fails for a non-owner', async () => {
   expect(getRes.body[0].stores.map((s) => s.id)).toEqual([store.id]);
 });
 
+test('delete store fails for a missing franchise', async () => {
+  const franchise = await createFranchise([adminUser]);
+  const store = await createStore(franchise.id, adminAuthToken);
+  await request(app).delete(`/api/franchise/${franchise.id}`).set('Authorization', `Bearer ${adminAuthToken}`);
+
+  const deleteRes = await request(app).delete(`/api/franchise/${franchise.id}/store/${store.id}`).set('Authorization', `Bearer ${adminAuthToken}`);
+  expect(deleteRes.status).toBe(404);
+  expect(deleteRes.body.message).toBe('franchise not found');
+});
+
 test('delete franchise', async () => {
   const franchise = await createFranchise([adminUser]);
   for (let i = 0; i < 2; i++) {
