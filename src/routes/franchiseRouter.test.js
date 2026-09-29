@@ -1,5 +1,6 @@
 const request = require('supertest');
 const app = require('../service');
+// eslint-disable-next-line no-restricted-syntax -- 'list franchises reads only one row past the limit' spies on DB.query; no setup
 const { DB } = require('../database/database.js');
 const { randomName, createAdminUser, registerUser } = require('./testHelpers.js');
 
