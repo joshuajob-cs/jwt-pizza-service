@@ -60,6 +60,16 @@ test('get user franchises', async () => {
   expect(getRes.body).toEqual([{ id: franchise.id, name: franchise.name, admins: [{ id: owner.id, name: owner.name, email: owner.email }], stores: [] }]);
 });
 
+test('get user franchises fails for another user', async () => {
+  const { user: owner } = await registerUser();
+  await createFranchise([owner]);
+  const { token: strangerAuthToken } = await registerUser();
+
+  const getRes = await request(app).get(`/api/franchise/${owner.id}`).set('Authorization', `Bearer ${strangerAuthToken}`);
+  expect(getRes.status).toBe(403);
+  expect(getRes.body.message).toBe('unable to get franchises');
+});
+
 test('create store', async () => {
   const { user: owner, token: ownerAuthToken } = await registerUser();
   const franchise = await createFranchise([owner]);
