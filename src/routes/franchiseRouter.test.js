@@ -55,6 +55,20 @@ test('list franchises reads only one row past the limit', async () => {
   expect(Math.max(...rowsPerQuery.map((rows) => rows.length))).toBeLessThanOrEqual(2);
 });
 
+test('get user franchises', async () => {
+  const franchisee = { name: randomName(), email: randomName() + '@test.com', password: 'a' };
+  const registerRes = await request(app).post('/api/auth').send(franchisee);
+  const franchiseeId = registerRes.body.user.id;
+  const franchiseeAuthToken = registerRes.body.token;
+
+  const franchise = { name: randomName(), admins: [{ email: franchisee.email }] };
+  const createRes = await request(app).post('/api/franchise').set('Authorization', `Bearer ${adminAuthToken}`).send(franchise);
+
+  const getRes = await request(app).get(`/api/franchise/${franchiseeId}`).set('Authorization', `Bearer ${franchiseeAuthToken}`);
+  expect(getRes.status).toBe(200);
+  expect(getRes.body).toEqual([{ id: createRes.body.id, name: franchise.name, admins: [{ id: franchiseeId, name: franchisee.name, email: franchisee.email }], stores: [] }]);
+});
+
 function randomName() {
   return Math.random().toString(36).substring(2, 12);
 }
