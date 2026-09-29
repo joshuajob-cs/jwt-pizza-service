@@ -19,9 +19,7 @@ test('create franchise', async () => {
 });
 
 test('create franchise fails for a non-admin', async () => {
-  const diner = { name: randomName(), email: randomName() + '@test.com', password: 'a' };
-  const registerRes = await request(app).post('/api/auth').send(diner);
-  const dinerAuthToken = registerRes.body.token;
+  const { user: diner, token: dinerAuthToken } = await registerUser();
 
   const franchise = { name: randomName(), admins: [{ email: diner.email }] };
   const createRes = await request(app).post('/api/franchise').set('Authorization', `Bearer ${dinerAuthToken}`).send(franchise);
@@ -30,19 +28,17 @@ test('create franchise fails for a non-admin', async () => {
 });
 
 test('list franchises', async () => {
-  const franchise = { name: randomName(), admins: [{ email: adminUser.email }] };
-  const createRes = await request(app).post('/api/franchise').set('Authorization', `Bearer ${adminAuthToken}`).send(franchise);
+  const franchise = await createFranchise([adminUser]);
 
   const listRes = await request(app).get(`/api/franchise?name=${franchise.name}`);
   expect(listRes.status).toBe(200);
-  expect(listRes.body).toEqual({ franchises: [{ id: createRes.body.id, name: franchise.name, stores: [] }], more: false });
+  expect(listRes.body).toEqual({ franchises: [{ id: franchise.id, name: franchise.name, stores: [] }], more: false });
 });
 
 test('list franchises reads only one row past the limit', async () => {
   const prefix = randomName();
   for (let i = 0; i < 3; i++) {
-    const franchise = { name: prefix + i, admins: [{ email: adminUser.email }] };
-    await request(app).post('/api/franchise').set('Authorization', `Bearer ${adminAuthToken}`).send(franchise);
+    await createFranchise([adminUser], prefix + i);
   }
 
   const querySpy = jest.spyOn(DB, 'query');
@@ -56,17 +52,12 @@ test('list franchises reads only one row past the limit', async () => {
 });
 
 test('get user franchises', async () => {
-  const franchisee = { name: randomName(), email: randomName() + '@test.com', password: 'a' };
-  const registerRes = await request(app).post('/api/auth').send(franchisee);
-  const franchiseeId = registerRes.body.user.id;
-  const franchiseeAuthToken = registerRes.body.token;
+  const { user: owner, token: ownerAuthToken } = await registerUser();
+  const franchise = await createFranchise([owner]);
 
-  const franchise = { name: randomName(), admins: [{ email: franchisee.email }] };
-  const createRes = await request(app).post('/api/franchise').set('Authorization', `Bearer ${adminAuthToken}`).send(franchise);
-
-  const getRes = await request(app).get(`/api/franchise/${franchiseeId}`).set('Authorization', `Bearer ${franchiseeAuthToken}`);
+  const getRes = await request(app).get(`/api/franchise/${owner.id}`).set('Authorization', `Bearer ${ownerAuthToken}`);
   expect(getRes.status).toBe(200);
-  expect(getRes.body).toEqual([{ id: createRes.body.id, name: franchise.name, admins: [{ id: franchiseeId, name: franchisee.name, email: franchisee.email }], stores: [] }]);
+  expect(getRes.body).toEqual([{ id: franchise.id, name: franchise.name, admins: [{ id: owner.id, name: owner.name, email: owner.email }], stores: [] }]);
 });
 
 function randomName() {
@@ -80,4 +71,18 @@ async function createAdminUser() {
 
   user = await DB.addUser(user);
   return { ...user, password: 'toomanysecrets' };
+}
+
+/** Registers a new diner through the API. Returns `{ user, token }`; user has id, name, and email. */
+async function registerUser() {
+  const newUser = { name: randomName(), email: randomName() + '@test.com', password: 'a' };
+  const registerRes = await request(app).post('/api/auth').send(newUser);
+  return registerRes.body;
+}
+
+/** Creates a franchise as the admin, with `admins` (users with an email) as its franchisees. Returns it with its id. */
+async function createFranchise(admins, name = randomName()) {
+  const franchise = { name, admins: admins.map((admin) => ({ email: admin.email })) };
+  const createRes = await request(app).post('/api/franchise').set('Authorization', `Bearer ${adminAuthToken}`).send(franchise);
+  return createRes.body;
 }
