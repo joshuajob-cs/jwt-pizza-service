@@ -38,6 +38,23 @@ test('list franchises', async () => {
   expect(listRes.body).toEqual({ franchises: [{ id: createRes.body.id, name: franchise.name, stores: [] }], more: false });
 });
 
+test('list franchises reads only one row past the limit', async () => {
+  const prefix = randomName();
+  for (let i = 0; i < 3; i++) {
+    const franchise = { name: prefix + i, admins: [{ email: adminUser.email }] };
+    await request(app).post('/api/franchise').set('Authorization', `Bearer ${adminAuthToken}`).send(franchise);
+  }
+
+  const querySpy = jest.spyOn(DB, 'query');
+  const listRes = await request(app).get(`/api/franchise?name=${prefix}*&limit=1`);
+  const rowsPerQuery = await Promise.all(querySpy.mock.results.map((result) => result.value));
+  querySpy.mockRestore();
+
+  expect(listRes.body.franchises).toHaveLength(1);
+  expect(listRes.body.more).toBe(true);
+  expect(Math.max(...rowsPerQuery.map((rows) => rows.length))).toBeLessThanOrEqual(2);
+});
+
 function randomName() {
   return Math.random().toString(36).substring(2, 12);
 }
