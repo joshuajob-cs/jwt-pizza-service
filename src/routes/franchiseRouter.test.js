@@ -18,6 +18,17 @@ test('create franchise', async () => {
   expect(createRes.body).toMatchObject({ name: franchise.name, admins: [{ email: adminUser.email, id: adminUser.id }] });
 });
 
+test('create franchise fails for a non-admin', async () => {
+  const diner = { name: randomName(), email: randomName() + '@test.com', password: 'a' };
+  const registerRes = await request(app).post('/api/auth').send(diner);
+  const dinerAuthToken = registerRes.body.token;
+
+  const franchise = { name: randomName(), admins: [{ email: diner.email }] };
+  const createRes = await request(app).post('/api/franchise').set('Authorization', `Bearer ${dinerAuthToken}`).send(franchise);
+  expect(createRes.status).toBe(403);
+  expect(createRes.body.message).toBe('unable to create a franchise');
+});
+
 function randomName() {
   return Math.random().toString(36).substring(2, 12);
 }
