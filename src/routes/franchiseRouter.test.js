@@ -83,9 +83,9 @@ test('create store fails for a non-owner', async () => {
 test('delete store', async () => {
   const { user: owner, token: ownerAuthToken } = await registerUser();
   const franchise = await createFranchise([owner]);
-  const createRes = await request(app).post(`/api/franchise/${franchise.id}/store`).set('Authorization', `Bearer ${ownerAuthToken}`).send({ name: randomName() });
+  const store = await createStore(franchise.id, ownerAuthToken);
 
-  const deleteRes = await request(app).delete(`/api/franchise/${franchise.id}/store/${createRes.body.id}`).set('Authorization', `Bearer ${ownerAuthToken}`);
+  const deleteRes = await request(app).delete(`/api/franchise/${franchise.id}/store/${store.id}`).set('Authorization', `Bearer ${ownerAuthToken}`);
   expect(deleteRes.status).toBe(200);
   expect(deleteRes.body).toEqual({ message: 'store deleted' });
 
@@ -96,21 +96,21 @@ test('delete store', async () => {
 test('delete store fails for a non-owner', async () => {
   const { user: owner, token: ownerAuthToken } = await registerUser();
   const franchise = await createFranchise([owner]);
-  const createRes = await request(app).post(`/api/franchise/${franchise.id}/store`).set('Authorization', `Bearer ${ownerAuthToken}`).send({ name: randomName() });
+  const store = await createStore(franchise.id, ownerAuthToken);
   const { token: strangerAuthToken } = await registerUser();
 
-  const deleteRes = await request(app).delete(`/api/franchise/${franchise.id}/store/${createRes.body.id}`).set('Authorization', `Bearer ${strangerAuthToken}`);
+  const deleteRes = await request(app).delete(`/api/franchise/${franchise.id}/store/${store.id}`).set('Authorization', `Bearer ${strangerAuthToken}`);
   expect(deleteRes.status).toBe(403);
   expect(deleteRes.body.message).toBe('unable to delete a store');
 
   const getRes = await request(app).get(`/api/franchise/${owner.id}`).set('Authorization', `Bearer ${ownerAuthToken}`);
-  expect(getRes.body[0].stores.map((store) => store.id)).toEqual([createRes.body.id]);
+  expect(getRes.body[0].stores.map((s) => s.id)).toEqual([store.id]);
 });
 
 test('delete franchise', async () => {
   const franchise = await createFranchise([adminUser]);
   for (let i = 0; i < 2; i++) {
-    await request(app).post(`/api/franchise/${franchise.id}/store`).set('Authorization', `Bearer ${adminAuthToken}`).send({ name: randomName() });
+    await createStore(franchise.id, adminAuthToken);
   }
 
   const deleteRes = await request(app).delete(`/api/franchise/${franchise.id}`).set('Authorization', `Bearer ${adminAuthToken}`);
@@ -145,5 +145,11 @@ async function registerUser() {
 async function createFranchise(admins, name = randomName()) {
   const franchise = { name, admins: admins.map((admin) => ({ email: admin.email })) };
   const createRes = await request(app).post('/api/franchise').set('Authorization', `Bearer ${adminAuthToken}`).send(franchise);
+  return createRes.body;
+}
+
+/** Creates a store in the franchise as the user holding `authToken` (an admin or the franchise's owner). Returns it with its id. */
+async function createStore(franchiseId, authToken) {
+  const createRes = await request(app).post(`/api/franchise/${franchiseId}/store`).set('Authorization', `Bearer ${authToken}`).send({ name: randomName() });
   return createRes.body;
 }
