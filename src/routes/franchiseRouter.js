@@ -144,8 +144,7 @@ franchiseRouter.delete(
  * [POST] /api/franchise/:franchiseId/store - add a store to a franchise. Requires auth.
  * Allowed for an admin or one of this franchise's admins (403 otherwise). Body: `{ name }`.
  * SQL: DB.getFranchise's two SELECTs (admins, stores), then INSERT INTO store.
- * NOTE: DB.getFranchise always returns an object, so `!franchise` is never true; a missing franchise
- * just has no admins.
+ * NOTE: DB.getFranchise always returns an object, so a missing franchise just has no admins.
  */
 franchiseRouter.post(
   '/:franchiseId/store',
@@ -153,7 +152,7 @@ franchiseRouter.post(
   asyncHandler(async (req, res) => {
     const franchiseId = Number(req.params.franchiseId);
     const franchise = await DB.getFranchise({ id: franchiseId });
-    if (!franchise || (!req.user.isRole(Role.Admin) && !franchise.admins.some((admin) => admin.id === req.user.id))) {
+    if (!canManageFranchise(req.user, franchise)) {
       throw new StatusCodeError('unable to create a store', 403);
     }
 
@@ -164,7 +163,7 @@ franchiseRouter.post(
 // deleteStore
 /**
  * [DELETE] /api/franchise/:franchiseId/store/:storeId - close a store. Requires auth.
- * Same permission check as createStore: an admin or one of this franchise's admins.
+ * Same permission check as createStore (canManageFranchise): an admin or one of this franchise's admins.
  * SQL: DB.getFranchise's two SELECTs, then DELETE FROM store WHERE franchiseId=? AND id=?
  */
 franchiseRouter.delete(
@@ -173,7 +172,7 @@ franchiseRouter.delete(
   asyncHandler(async (req, res) => {
     const franchiseId = Number(req.params.franchiseId);
     const franchise = await DB.getFranchise({ id: franchiseId });
-    if (!franchise || (!req.user.isRole(Role.Admin) && !franchise.admins.some((admin) => admin.id === req.user.id))) {
+    if (!canManageFranchise(req.user, franchise)) {
       throw new StatusCodeError('unable to delete a store', 403);
     }
 
@@ -182,5 +181,14 @@ franchiseRouter.delete(
     res.json({ message: 'store deleted' });
   }),
 );
+
+/**
+ * Can this user manage the franchise's stores? Admins can manage any franchise; franchisees only their own.
+ * The `!!franchise` guard keeps this false if DB.getFranchise ever returns null for a missing franchise.
+ * @returns {boolean}
+ */
+function canManageFranchise(user, franchise) {
+  return !!franchise && (user.isRole(Role.Admin) || franchise.admins.some((admin) => admin.id === user.id));
+}
 
 module.exports = franchiseRouter;
