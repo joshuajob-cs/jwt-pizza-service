@@ -29,6 +29,15 @@ test('create franchise fails for a non-admin', async () => {
   expect(createRes.body.message).toBe('unable to create a franchise');
 });
 
+test('list franchises', async () => {
+  const franchise = { name: randomName(), admins: [{ email: adminUser.email }] };
+  const createRes = await request(app).post('/api/franchise').set('Authorization', `Bearer ${adminAuthToken}`).send(franchise);
+
+  const listRes = await request(app).get(`/api/franchise?name=${franchise.name}`);
+  expect(listRes.status).toBe(200);
+  expect(listRes.body).toEqual({ franchises: [{ id: createRes.body.id, name: franchise.name, stores: [] }], more: false });
+});
+
 function randomName() {
   return Math.random().toString(36).substring(2, 12);
 }
