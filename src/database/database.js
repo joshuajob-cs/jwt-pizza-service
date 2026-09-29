@@ -313,7 +313,7 @@ class DB {
    * It asks for one extra row to learn whether there is a next page (`more`), then trims it off.
    * `*` in the filter becomes SQL's `%` wildcard, so `*pizza*` matches names containing "pizza".
    *
-   * NOTE: from HTTP, page and limit arrive as strings, so `limit + 1` joins text: "3" + 1 is "31".
+   * page and limit are converted to numbers first, because from HTTP they arrive as strings.
    * NOTE: limit and offset are pasted into the SQL string rather than using placeholders.
    * @param {object} [authUser] - req.user, or undefined when not logged in
    * @returns {Promise<[object[], boolean]>} `[franchises, more]`
@@ -321,6 +321,8 @@ class DB {
   async getFranchises(authUser, page = 0, limit = 10, nameFilter = '*') {
     const connection = await this.getConnection();
 
+    page = Number(page);
+    limit = Number(limit);
     const offset = page * limit;
     nameFilter = nameFilter.replace(/\*/g, '%');
 

@@ -161,7 +161,7 @@ knowing about for security testing:
 | Method | What's pasted in | Where it comes from |
 | --- | --- | --- |
 | `updateUser` | name, email, password hash, userId | the request body. **Injectable.** |
-| `getFranchises` | `limit + 1`, `offset` | the URL query string |
+| `getFranchises` | `limit + 1`, `offset` | the URL query string, converted to numbers first |
 | `getOrders` | `offset`, `listPerPage` | the page number in the URL, and config |
 | `getUserFranchises` | franchise ids | the database's own values |
 | `getID` | table and column names | fixed strings in the code |
