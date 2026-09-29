@@ -90,6 +90,15 @@ test('create store fails for a non-owner', async () => {
   expect(createRes.body.message).toBe('unable to create a store');
 });
 
+test('create store fails for a missing franchise', async () => {
+  const franchise = await createFranchise([adminUser]);
+  await request(app).delete(`/api/franchise/${franchise.id}`).set('Authorization', `Bearer ${adminAuthToken}`);
+
+  const createRes = await request(app).post(`/api/franchise/${franchise.id}/store`).set('Authorization', `Bearer ${adminAuthToken}`).send({ name: randomName() });
+  expect(createRes.status).toBe(404);
+  expect(createRes.body.message).toBe('franchise not found');
+});
+
 test('delete store', async () => {
   const { user: owner, token: ownerAuthToken } = await registerUser();
   const franchise = await createFranchise([owner]);
