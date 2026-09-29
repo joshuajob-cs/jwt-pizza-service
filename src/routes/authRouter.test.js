@@ -21,6 +21,12 @@ test('login', async () => {
   expect(loginRes.body.user).toMatchObject(expectedUser);
 });
 
+test('login fails with a wrong password', async () => {
+  const loginRes = await request(app).put('/api/auth').send({ email: testUser.email, password: 'wrong' });
+  expect(loginRes.status).toBe(404);
+  expect(loginRes.body.message).toBe('unknown user');
+});
+
 test('logout', async () => {
   const loginRes = await request(app).put('/api/auth').send(testUser);
   const token = loginRes.body.token;
