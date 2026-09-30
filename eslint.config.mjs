@@ -1,13 +1,14 @@
 import globals from 'globals';
 import pluginJs from '@eslint/js';
 import jest from 'eslint-plugin-jest';
+import prettier from 'eslint-config-prettier';
 
 export default [
   { files: ['**/*.js'], languageOptions: { sourceType: 'commonjs' } },
   { languageOptions: { globals: globals.node } },
   { languageOptions: { globals: globals.jest } },
   pluginJs.configs.recommended,
-  // Catches a forgotten test.only (which silently skips the rest of the suite in CI), tests with no expect, and duplicate titles.
+  // Catches a forgotten test.only (which silently skips every other test in that file in CI), tests with no expect, and duplicate titles.
   {
     files: ['**/*.test.js'],
     ...jest.configs['flat/recommended'],
@@ -29,4 +30,6 @@ export default [
       ],
     },
   },
+  // Last, so it turns off any style rule above that would fight Prettier's formatting.
+  prettier,
 ];
