@@ -72,6 +72,22 @@ test('get user franchises', async () => {
   expect(getRes.body).toEqual([{ id: franchise.id, name: franchise.name, admins: [{ id: owner.id, name: owner.name, email: owner.email }], stores: [] }]);
 });
 
+test('get user franchises totals revenue per store', async () => {
+  const { user: owner, token: ownerAuthToken } = await registerUser();
+  const franchise = await createFranchise([owner]);
+  const busyStore = await createStore(franchise.id, ownerAuthToken);
+  const quietStore = await createStore(franchise.id, ownerAuthToken);
+  await placeOrder(franchise.id, busyStore.id, [0.001, 0.002]);
+  await placeOrder(franchise.id, busyStore.id, [0.004]);
+
+  const getRes = await request(app).get(`/api/franchise/${owner.id}`).set('Authorization', `Bearer ${ownerAuthToken}`);
+  const stores = getRes.body[0].stores.sort((a, b) => a.id - b.id);
+  expect(stores).toEqual([
+    { id: busyStore.id, name: busyStore.name, totalRevenue: 0.007 },
+    { id: quietStore.id, name: quietStore.name, totalRevenue: 0 },
+  ]);
+});
+
 test('get user franchises fails for another user', async () => {
   const { user: owner } = await registerUser();
   await createFranchise([owner]);
@@ -173,4 +189,17 @@ async function createFranchise(admins, name = randomName()) {
 async function createStore(franchiseId, authToken) {
   const createRes = await request(app).post(`/api/franchise/${franchiseId}/store`).set('Authorization', `Bearer ${authToken}`).send({ name: randomName() });
   return createRes.body;
+}
+
+/** A new diner orders one pizza per price at this store. The Factory is mocked, so no network call is made. */
+async function placeOrder(franchiseId, storeId, prices) {
+  const { token: dinerAuthToken } = await registerUser();
+  const menuItem = { title: randomName(), description: 'test pizza', image: 'pizza1.png', price: 0.001 };
+  const menuRes = await request(app).put('/api/order/menu').set('Authorization', `Bearer ${adminAuthToken}`).send(menuItem);
+  const menuId = menuRes.body.find((item) => item.title === menuItem.title).id;
+
+  const fetchSpy = jest.spyOn(global, 'fetch').mockResolvedValue({ ok: true, json: async () => ({ jwt: 'factory-jwt', reportUrl: 'factory-report' }) });
+  const items = prices.map((price) => ({ menuId, description: menuItem.title, price }));
+  await request(app).post('/api/order').set('Authorization', `Bearer ${dinerAuthToken}`).send({ franchiseId, storeId, items });
+  fetchSpy.mockRestore();
 }
