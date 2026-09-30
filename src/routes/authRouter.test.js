@@ -1,3 +1,4 @@
+const jwt = require('jsonwebtoken');
 const request = require('supertest');
 const app = require('../service');
 
@@ -55,6 +56,28 @@ test('register fails without a password', async () => {
   const registerRes = await request(app).post('/api/auth').send({ name: testUser.name, email: testUser.email });
   expect(registerRes.status).toBe(400);
   expect(registerRes.body.message).toBe('name, email, and password are required');
+});
+
+test('get me fails with a garbage token', async () => {
+  const meRes = await request(app).get('/api/user/me').set('Authorization', 'Bearer not-a-jwt');
+  expect(meRes.status).toBe(401);
+});
+
+test('get me fails with a token signed by the wrong secret', async () => {
+  const forgedToken = jwt.sign({ id: 1, roles: [{ role: 'admin' }] }, 'not-the-real-secret');
+  const meRes = await request(app).get('/api/user/me').set('Authorization', `Bearer ${forgedToken}`);
+  expect(meRes.status).toBe(401);
+});
+
+// The signature is a real, logged-in one, so DB.isLoggedIn passes and only jwt.verify catches the edited payload.
+test('get me fails with a real token whose payload was edited to admin', async () => {
+  const [header, payload, signature] = testUserAuthToken.split('.');
+  const user = JSON.parse(Buffer.from(payload, 'base64url').toString());
+  user.roles = [{ role: 'admin' }];
+  const tamperedToken = [header, Buffer.from(JSON.stringify(user)).toString('base64url'), signature].join('.');
+
+  const meRes = await request(app).get('/api/user/me').set('Authorization', `Bearer ${tamperedToken}`);
+  expect(meRes.status).toBe(401);
 });
 
 function expectValidJwt(potentialJwt) {
