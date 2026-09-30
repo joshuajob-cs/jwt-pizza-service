@@ -88,6 +88,15 @@ test('get user franchises totals revenue per store', async () => {
   ]);
 });
 
+test('get user franchises by an admin', async () => {
+  const { user: owner } = await registerUser();
+  const franchise = await createFranchise([owner]);
+
+  const getRes = await request(app).get(`/api/franchise/${owner.id}`).set('Authorization', `Bearer ${adminAuthToken}`);
+  expect(getRes.status).toBe(200);
+  expect(getRes.body.map((f) => f.id)).toEqual([franchise.id]);
+});
+
 test('get user franchises fails for another user', async () => {
   const { user: owner } = await registerUser();
   await createFranchise([owner]);
