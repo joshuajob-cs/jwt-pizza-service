@@ -58,6 +58,24 @@ test('register fails without a password', async () => {
   expect(registerRes.body.message).toBe('name, email, and password are required');
 });
 
+// Every route behind authenticateToken. The user list/delete stubs are left to ⓹, and DELETE /api/franchise/:id has no guard (a known hole).
+test.each([
+  ['DELETE', '/api/auth'],
+  ['GET', '/api/user/me'],
+  ['PUT', '/api/user/1'],
+  ['PUT', '/api/order/menu'],
+  ['GET', '/api/order'],
+  ['POST', '/api/order'],
+  ['GET', '/api/franchise/1'],
+  ['POST', '/api/franchise'],
+  ['POST', '/api/franchise/1/store'],
+  ['DELETE', '/api/franchise/1/store/1'],
+])('%s %s fails without a token', async (method, path) => {
+  const res = await request(app)[method.toLowerCase()](path);
+  expect(res.status).toBe(401);
+  expect(res.body.message).toBe('unauthorized');
+});
+
 test('get me fails with a garbage token', async () => {
   const meRes = await request(app).get('/api/user/me').set('Authorization', 'Bearer not-a-jwt');
   expect(meRes.status).toBe(401);
