@@ -8,6 +8,15 @@ export default [
   { languageOptions: { globals: globals.node } },
   { languageOptions: { globals: globals.jest } },
   pluginJs.configs.recommended,
+  // Bug-catchers beyond recommended: no == coercion surprises, no var hoisting, const unless reassigned, { name } over { name: name }.
+  {
+    rules: {
+      eqeqeq: 'error',
+      'no-var': 'error',
+      'prefer-const': 'error',
+      'object-shorthand': 'error',
+    },
+  },
   // Catches a forgotten test.only (which silently skips every other test in that file in CI), tests with no expect, and duplicate titles.
   {
     files: ['**/*.test.js'],
@@ -32,4 +41,6 @@ export default [
   },
   // Last, so it turns off any style rule above that would fight Prettier's formatting.
   prettier,
+  // After prettier, which turns curly off: an if without braces is how a second line ends up outside the if.
+  { rules: { curly: 'error' } },
 ];

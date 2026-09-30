@@ -112,7 +112,7 @@ class DB {
         return { objectId: r.objectId || undefined, role: r.role };
       });
 
-      return { ...user, roles: roles, password: undefined };
+      return { ...user, roles, password: undefined };
     } finally {
       connection.end();
     }
@@ -213,10 +213,10 @@ class DB {
       const offset = this.getOffset(page, config.db.listPerPage);
       const orders = await this.query(connection, `SELECT id, franchiseId, storeId, date FROM dinerOrder WHERE dinerId=? LIMIT ${offset},${config.db.listPerPage}`, [user.id]);
       for (const order of orders) {
-        let items = await this.query(connection, `SELECT id, menuId, description, price FROM orderItem WHERE orderId=?`, [order.id]);
+        const items = await this.query(connection, `SELECT id, menuId, description, price FROM orderItem WHERE orderId=?`, [order.id]);
         order.items = items;
       }
-      return { dinerId: user.id, orders: orders, page };
+      return { dinerId: user.id, orders, page };
     } finally {
       connection.end();
     }
@@ -260,7 +260,7 @@ class DB {
     try {
       for (const admin of franchise.admins) {
         const adminUser = await this.query(connection, `SELECT id, name FROM user WHERE email=?`, [admin.email]);
-        if (adminUser.length == 0) {
+        if (adminUser.length === 0) {
           throw new StatusCodeError(`unknown user for franchise admin ${admin.email} provided`, 404);
         }
         admin.id = adminUser[0].id;
