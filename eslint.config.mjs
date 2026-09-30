@@ -23,7 +23,8 @@ export default [
     plugins: { 'import-x': importX },
     settings: { 'import-x/resolver-next': [createNodeResolver()] },
     rules: {
-      'import-x/no-unresolved': ['error', { commonjs: true }],
+      // config.js is gitignored and CI writes it after lint runs, so it can't be resolved there.
+      'import-x/no-unresolved': ['error', { commonjs: true, ignore: ['/config\\.js$'] }],
       'import-x/order': [
         'error',
         {
