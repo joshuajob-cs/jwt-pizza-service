@@ -17,7 +17,7 @@ afterEach(() => {
 });
 
 test('get menu', async () => {
-  const item = { title: randomName(), description: 'test pizza', image: 'pizza1.png', price: 0.0042 };
+  const item = newMenuItem();
   await request(app).put('/api/order/menu').set('Authorization', `Bearer ${adminAuthToken}`).send(item);
 
   const menuRes = await request(app).get('/api/order/menu');
@@ -26,7 +26,7 @@ test('get menu', async () => {
 });
 
 test('add menu item', async () => {
-  const item = { title: randomName(), description: 'test pizza', image: 'pizza1.png', price: 0.0042 };
+  const item = newMenuItem();
 
   const addRes = await request(app).put('/api/order/menu').set('Authorization', `Bearer ${adminAuthToken}`).send(item);
   expect(addRes.status).toBe(200);
@@ -35,7 +35,7 @@ test('add menu item', async () => {
 
 test('add menu item fails for a non-admin', async () => {
   const { token: dinerAuthToken } = await registerUser();
-  const item = { title: randomName(), description: 'test pizza', image: 'pizza1.png', price: 0.0042 };
+  const item = newMenuItem();
 
   const addRes = await request(app).put('/api/order/menu').set('Authorization', `Bearer ${dinerAuthToken}`).send(item);
   expect(addRes.status).toBe(403);
@@ -45,8 +45,8 @@ test('add menu item fails for a non-admin', async () => {
 test('get orders', async () => {
   const { user: diner, token: dinerAuthToken } = await registerUser();
   const menuItem = await addMenuItem();
-  const orderReq = { franchiseId: 1, storeId: 1, items: [{ menuId: menuItem.id, description: menuItem.title, price: menuItem.price }] };
-  jest.spyOn(global, 'fetch').mockResolvedValue({ ok: true, json: async () => ({ jwt: 'factory-jwt', reportUrl: 'factory-report' }) });
+  const orderReq = orderFor(menuItem);
+  mockFactory(true, { jwt: 'factory-jwt', reportUrl: 'factory-report' });
   const orderRes = await request(app).post('/api/order').set('Authorization', `Bearer ${dinerAuthToken}`).send(orderReq);
 
   const getRes = await request(app).get('/api/order').set('Authorization', `Bearer ${dinerAuthToken}`);
@@ -69,10 +69,10 @@ test('get orders when there are none', async () => {
 test('create order', async () => {
   const { user: diner, token: dinerAuthToken } = await registerUser();
   const menuItem = await addMenuItem();
-  const orderReq = { franchiseId: 1, storeId: 1, items: [{ menuId: menuItem.id, description: menuItem.title, price: menuItem.price }] };
+  const orderReq = orderFor(menuItem);
 
   // Stand in for the Factory: no network call, and a known answer to check against.
-  const fetchSpy = jest.spyOn(global, 'fetch').mockResolvedValue({ ok: true, json: async () => ({ jwt: 'factory-jwt', reportUrl: 'factory-report' }) });
+  const fetchSpy = mockFactory(true, { jwt: 'factory-jwt', reportUrl: 'factory-report' });
   const orderRes = await request(app).post('/api/order').set('Authorization', `Bearer ${dinerAuthToken}`).send(orderReq);
 
   expect(orderRes.status).toBe(200);
@@ -86,18 +86,33 @@ test('create order', async () => {
 test('create order fails when the factory fails', async () => {
   const { token: dinerAuthToken } = await registerUser();
   const menuItem = await addMenuItem();
-  const orderReq = { franchiseId: 1, storeId: 1, items: [{ menuId: menuItem.id, description: menuItem.title, price: menuItem.price }] };
+  const orderReq = orderFor(menuItem);
 
-  jest.spyOn(global, 'fetch').mockResolvedValue({ ok: false, json: async () => ({ reportUrl: 'factory-report' }) });
+  mockFactory(false, { reportUrl: 'factory-report' });
   const orderRes = await request(app).post('/api/order').set('Authorization', `Bearer ${dinerAuthToken}`).send(orderReq);
 
   expect(orderRes.status).toBe(500);
   expect(orderRes.body).toEqual({ message: 'Failed to fulfill order at factory', followLinkToEndChaos: 'factory-report' });
 });
 
+/** A menu item with a unique title, not yet added. */
+function newMenuItem() {
+  return { title: randomName(), description: 'test pizza', image: 'pizza1.png', price: 0.0042 };
+}
+
+/** An order for one of `menuItem` at franchise 1, store 1. */
+function orderFor(menuItem) {
+  return { franchiseId: 1, storeId: 1, items: [{ menuId: menuItem.id, description: menuItem.title, price: menuItem.price }] };
+}
+
+/** Stands in for the Factory: fetch resolves with `ok` and `body` instead of calling the network. Returns the spy. */
+function mockFactory(ok, body) {
+  return jest.spyOn(global, 'fetch').mockResolvedValue({ ok, json: async () => body });
+}
+
 /** Adds a pizza to the menu as the admin. Returns the new menu item with its id. */
 async function addMenuItem() {
-  const item = { title: randomName(), description: 'test pizza', image: 'pizza1.png', price: 0.0042 };
+  const item = newMenuItem();
   const addRes = await request(app).put('/api/order/menu').set('Authorization', `Bearer ${adminAuthToken}`).send(item);
   return addRes.body.find((menuItem) => menuItem.title === item.title);
 }
