@@ -134,8 +134,12 @@ has curl scripts to create the franchisee, stores, and menu items.
 - **CommonJS** (`require` / `module.exports`), Node 24, no TypeScript, no build step.
 - Prettier-ish formatting already in the tree: 2-space indent, single quotes, semicolons,
   **very wide lines** (~200 cols — the `docs` arrays and SQL strings stay on one line). Match it.
-- No test framework, no linter, and no CI workflows are set up yet — **deliverable 3 adds Jest,
-  coverage, ESLint, and `.github/workflows/`.** Don't assume `npm test` exists until then.
+- **Tests:** Jest + supertest, one `*.test.js` beside each router (`npm test`; needs MySQL running).
+  Tests set up data through the API; only `src/routes/testHelpers.js` may touch the database.
+- **Lint and format:** `npm run lint` (ESLint: recommended, core rules like `eqeqeq`/`curly`, jest,
+  and import-x for `require` paths and order) and `npm run format:check` (Prettier). Both must pass.
+- **CI:** [.github/workflows/ci.yml](.github/workflows/ci.yml) runs lint, format check, and tests with
+  coverage on every push, then posts the coverage badge.
 - `config.js`, `node_modules`, `coverage`, `dist`, and the `CLAUDE*.md` notes are gitignored.
   **Never commit secrets** — deliverable 3 explicitly grades keeping the factory key and DB
   password out of the repo (they go in GitHub repo secrets and get written into `config.js` by CI).
@@ -163,6 +167,7 @@ flag them.
 6. `getFranchises` interpolates `limit`/`offset` straight into the SQL string.
 7. `initializeDatabase` does not `await this.addUser(defaultAdmin)`.
 8. `version.json` ships as `00010101.010101` — a placeholder; CI stamps the real value.
+9. **Tokens never expire** — `setAuth` calls `jwt.sign` with no `expiresIn`, so a token is valid until logout.
 
 ---
 
