@@ -123,7 +123,7 @@ class DB {
    * SQL: UPDATE user SET ... WHERE id=...
    * NOTE: the values are pasted straight into the SQL string instead of using `?` placeholders, so a
    * crafted name or email can change the query (SQL injection).
-   * NOTE: it re-reads with getUser(email, password), which fails when no email was sent.
+   * Re-reads by id (not by the email sent), so an update without an email still works.
    * @returns {Promise<object>} the updated user, as getUser returns it
    */
   async updateUser(userId, name, email, password) {
@@ -144,7 +144,11 @@ class DB {
         const query = `UPDATE user SET ${params.join(', ')} WHERE id=${userId}`;
         await this.query(connection, query);
       }
-      return this.getUser(email, password);
+      const [current] = await this.query(connection, `SELECT email FROM user WHERE id=?`, [userId]);
+      if (!current) {
+        throw new StatusCodeError('unknown user', 404);
+      }
+      return this.getUser(current.email);
     } finally {
       connection.end();
     }
