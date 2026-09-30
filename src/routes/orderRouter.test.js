@@ -44,6 +44,22 @@ test('add menu item fails for a non-admin', async () => {
 
 test('get orders', async () => {
   const { user: diner, token: dinerAuthToken } = await registerUser();
+  const menuItem = await addMenuItem();
+  const orderReq = { franchiseId: 1, storeId: 1, items: [{ menuId: menuItem.id, description: menuItem.title, price: menuItem.price }] };
+  jest.spyOn(global, 'fetch').mockResolvedValue({ ok: true, json: async () => ({ jwt: 'factory-jwt', reportUrl: 'factory-report' }) });
+  const orderRes = await request(app).post('/api/order').set('Authorization', `Bearer ${dinerAuthToken}`).send(orderReq);
+
+  const getRes = await request(app).get('/api/order').set('Authorization', `Bearer ${dinerAuthToken}`);
+  expect(getRes.status).toBe(200);
+  expect(getRes.body).toEqual({
+    dinerId: diner.id,
+    orders: [{ id: orderRes.body.order.id, franchiseId: 1, storeId: 1, date: expect.any(String), items: [{ ...orderReq.items[0], id: expect.any(Number) }] }],
+    page: 1,
+  });
+});
+
+test('get orders when there are none', async () => {
+  const { user: diner, token: dinerAuthToken } = await registerUser();
 
   const getRes = await request(app).get('/api/order').set('Authorization', `Bearer ${dinerAuthToken}`);
   expect(getRes.status).toBe(200);
