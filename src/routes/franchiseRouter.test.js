@@ -13,6 +13,11 @@ beforeAll(async () => {
   adminAuthToken = loginRes.body.token;
 });
 
+// Put back anything a test replaced (fetch, DB.query), even if that test failed partway through.
+afterEach(() => {
+  jest.restoreAllMocks();
+});
+
 test('create franchise', async () => {
   const franchise = { name: randomName(), admins: [{ email: adminUser.email }] };
   const createRes = await request(app).post('/api/franchise').set('Authorization', `Bearer ${adminAuthToken}`).send(franchise);

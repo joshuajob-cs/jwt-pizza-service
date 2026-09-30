@@ -2,6 +2,7 @@ const jwt = require('jsonwebtoken');
 const request = require('supertest');
 const app = require('../service');
 
+// Shared by every test in this file on purpose, so tests may only read it: never log out, update, or delete it.
 const testUser = { name: 'pizza diner', email: 'reg@test.com', password: 'a' };
 let testUserAuthToken;
 
