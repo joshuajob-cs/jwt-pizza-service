@@ -4,11 +4,18 @@ const config = require('../config.js');
 const { randomName, createAdminUser, registerUser } = require('./testHelpers.js');
 
 let adminAuthToken;
+let store;
 
 beforeAll(async () => {
   const adminUser = await createAdminUser();
   const loginRes = await request(app).put('/api/auth').send(adminUser);
   adminAuthToken = loginRes.body.token;
+
+  // Orders go to a store made here, never a hard-coded id, so they can't land in another test's store and change its revenue.
+  const franchise = { name: randomName(), admins: [{ email: adminUser.email }] };
+  const franchiseRes = await request(app).post('/api/franchise').set('Authorization', `Bearer ${adminAuthToken}`).send(franchise);
+  const storeRes = await request(app).post(`/api/franchise/${franchiseRes.body.id}/store`).set('Authorization', `Bearer ${adminAuthToken}`).send({ name: randomName() });
+  store = storeRes.body;
 });
 
 // Put back anything a test replaced (like fetch), even if that test failed partway through.
@@ -53,7 +60,7 @@ test('get orders', async () => {
   expect(getRes.status).toBe(200);
   expect(getRes.body).toEqual({
     dinerId: diner.id,
-    orders: [{ id: orderRes.body.order.id, franchiseId: 1, storeId: 1, date: expect.any(String), items: [{ ...orderReq.items[0], id: expect.any(Number) }] }],
+    orders: [{ id: orderRes.body.order.id, franchiseId: store.franchiseId, storeId: store.id, date: expect.any(String), items: [{ ...orderReq.items[0], id: expect.any(Number) }] }],
     page: 1,
   });
 });
@@ -104,9 +111,9 @@ function newMenuItem() {
   return { title: randomName(), description: 'test pizza', image: 'pizza1.png', price: 0.0042 };
 }
 
-/** An order for one of `menuItem` at franchise 1, store 1. */
+/** An order for one of `menuItem` at the store made in beforeAll. */
 function orderFor(menuItem) {
-  return { franchiseId: 1, storeId: 1, items: [{ menuId: menuItem.id, description: menuItem.title, price: menuItem.price }] };
+  return { franchiseId: store.franchiseId, storeId: store.id, items: [{ menuId: menuItem.id, description: menuItem.title, price: menuItem.price }] };
 }
 
 /** Stands in for the Factory: fetch resolves with `ok` and `body` instead of calling the network. Returns the spy. */
