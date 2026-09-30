@@ -81,6 +81,10 @@ test('create order', async () => {
   const [url, options] = fetchSpy.mock.calls[0];
   expect(url).toBe(`${config.factory.url}/api/order`);
   expect(JSON.parse(options.body)).toEqual({ diner: { id: diner.id, name: diner.name, email: diner.email }, order: orderRes.body.order });
+
+  // The response alone could be echoed back without saving; reading it back proves it was stored.
+  const getRes = await request(app).get('/api/order').set('Authorization', `Bearer ${dinerAuthToken}`);
+  expect(getRes.body.orders.map((order) => order.id)).toEqual([orderRes.body.order.id]);
 });
 
 test('create order fails when the factory fails', async () => {

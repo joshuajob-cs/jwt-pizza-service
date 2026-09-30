@@ -29,6 +29,16 @@ test('create franchise fails for a non-admin', async () => {
   expect(createRes.body.message).toBe('unable to create a franchise');
 });
 
+test('create franchise fails for an unknown admin email', async () => {
+  const franchise = { name: randomName(), admins: [{ email: randomName() + '@nobody.com' }] };
+  const createRes = await request(app).post('/api/franchise').set('Authorization', `Bearer ${adminAuthToken}`).send(franchise);
+  expect(createRes.status).toBe(404);
+  expect(createRes.body.message).toBe(`unknown user for franchise admin ${franchise.admins[0].email} provided`);
+
+  const listRes = await request(app).get(`/api/franchise?name=${franchise.name}`);
+  expect(listRes.body.franchises).toEqual([]);
+});
+
 test('list franchises', async () => {
   const franchise = await createFranchise([adminUser]);
 
