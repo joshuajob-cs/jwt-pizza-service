@@ -1,6 +1,6 @@
 const request = require('supertest');
 const app = require('../service');
-const { randomName, registerUser } = require('./testHelpers.js');
+const { randomName, createAdminUser, registerUser } = require('./testHelpers.js');
 
 test('get me', async () => {
   const { user, token } = await registerUser();
@@ -17,6 +17,12 @@ test('update user', async () => {
   const updateRes = await request(app).put(`/api/user/${user.id}`).set('Authorization', `Bearer ${token}`).send(changes);
   expect(updateRes.status).toBe(200);
   expect(updateRes.body.user).toMatchObject({ id: user.id, name: changes.name, email: changes.email });
+  expect(updateRes.body.user.password).toBeUndefined();
+
+  // The new token belongs to the updated user.
+  const meRes = await request(app).get('/api/user/me').set('Authorization', `Bearer ${updateRes.body.token}`);
+  expect(meRes.status).toBe(200);
+  expect(meRes.body).toMatchObject({ id: user.id, name: changes.name, email: changes.email });
 
   const loginRes = await request(app).put('/api/auth').send({ email: changes.email, password: changes.password });
   expect(loginRes.status).toBe(200);
@@ -27,6 +33,17 @@ test('update user name only', async () => {
   const newName = randomName();
 
   const updateRes = await request(app).put(`/api/user/${user.id}`).set('Authorization', `Bearer ${token}`).send({ name: newName });
+  expect(updateRes.status).toBe(200);
+  expect(updateRes.body.user).toMatchObject({ id: user.id, name: newName, email: user.email });
+});
+
+test('update user by an admin', async () => {
+  const { user } = await registerUser();
+  const admin = await createAdminUser();
+  const loginRes = await request(app).put('/api/auth').send(admin);
+  const newName = randomName();
+
+  const updateRes = await request(app).put(`/api/user/${user.id}`).set('Authorization', `Bearer ${loginRes.body.token}`).send({ name: newName });
   expect(updateRes.status).toBe(200);
   expect(updateRes.body.user).toMatchObject({ id: user.id, name: newName, email: user.email });
 });
