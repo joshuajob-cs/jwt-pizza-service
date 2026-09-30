@@ -1,6 +1,8 @@
 {
+  "globalSetup": "<rootDir>/test/globalSetup.js",
+  "setupFiles": ["<rootDir>/test/useTestDatabase.js"],
   "collectCoverage": true,
   "coverageReporters": ["json-summary", "text"],
-  "coveragePathIgnorePatterns": ["/node_modules/", "testHelpers\\.js"],
+  "coveragePathIgnorePatterns": ["/node_modules/", "testHelpers\\.js", "/test/"],
   "coverageThreshold": { "global": { "lines": 80 } }
 }
