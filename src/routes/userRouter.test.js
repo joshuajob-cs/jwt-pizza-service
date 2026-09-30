@@ -22,6 +22,15 @@ test('update user', async () => {
   expect(loginRes.status).toBe(200);
 });
 
+test('update user name only', async () => {
+  const { user, token } = await registerUser();
+  const newName = randomName();
+
+  const updateRes = await request(app).put(`/api/user/${user.id}`).set('Authorization', `Bearer ${token}`).send({ name: newName });
+  expect(updateRes.status).toBe(200);
+  expect(updateRes.body.user).toMatchObject({ id: user.id, name: newName, email: user.email });
+});
+
 test('update user fails for another user', async () => {
   const { user: victim } = await registerUser();
   const { token: strangerAuthToken } = await registerUser();
