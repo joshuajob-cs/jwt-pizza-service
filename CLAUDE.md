@@ -136,6 +136,8 @@ has curl scripts to create the franchisee, stores, and menu items.
   **very wide lines** (~200 cols — the `docs` arrays and SQL strings stay on one line). Match it.
 - **Tests:** Jest + supertest, one `*.test.js` beside each router (`npm test`; needs MySQL running).
   Tests set up data through the API; only `src/routes/testHelpers.js` may touch the database.
+  Tests run against their own `pizza_test` database (never the dev `pizza` one): [test/globalSetup.js](test/globalSetup.js)
+  drops and rebuilds it once per run, so every run starts empty, like CI.
 - **Lint and format:** `npm run lint` (ESLint: recommended, core rules like `eqeqeq`/`curly`, jest,
   and import-x for `require` paths and order) and `npm run format:check` (Prettier). Both must pass.
 - **CI:** [.github/workflows/ci.yml](.github/workflows/ci.yml) runs lint, format check, and tests with
