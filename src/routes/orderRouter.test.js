@@ -67,6 +67,18 @@ test('create order', async () => {
   expect(JSON.parse(options.body)).toEqual({ diner: { id: diner.id, name: diner.name, email: diner.email }, order: orderRes.body.order });
 });
 
+test('create order fails when the factory fails', async () => {
+  const { token: dinerAuthToken } = await registerUser();
+  const menuItem = await addMenuItem();
+  const orderReq = { franchiseId: 1, storeId: 1, items: [{ menuId: menuItem.id, description: menuItem.title, price: menuItem.price }] };
+
+  jest.spyOn(global, 'fetch').mockResolvedValue({ ok: false, json: async () => ({ reportUrl: 'factory-report' }) });
+  const orderRes = await request(app).post('/api/order').set('Authorization', `Bearer ${dinerAuthToken}`).send(orderReq);
+
+  expect(orderRes.status).toBe(500);
+  expect(orderRes.body).toEqual({ message: 'Failed to fulfill order at factory', followLinkToEndChaos: 'factory-report' });
+});
+
 /** Adds a pizza to the menu as the admin. Returns the new menu item with its id. */
 async function addMenuItem() {
   const item = { title: randomName(), description: 'test pizza', image: 'pizza1.png', price: 0.0042 };
