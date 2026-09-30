@@ -16,6 +16,7 @@ const config = require('../config.js');
 const { StatusCodeError } = require('../endpointHelper.js');
 const { Role } = require('../model/model.js');
 const dbModel = require('./dbModel.js');
+
 class DB {
   /** Starts creating the database and tables; `this.initialized` is the promise every query waits on. */
   constructor() {

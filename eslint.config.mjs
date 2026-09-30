@@ -2,6 +2,7 @@ import globals from 'globals';
 import pluginJs from '@eslint/js';
 import jest from 'eslint-plugin-jest';
 import prettier from 'eslint-config-prettier';
+import { importX, createNodeResolver } from 'eslint-plugin-import-x';
 
 export default [
   { files: ['**/*.js'], languageOptions: { sourceType: 'commonjs' } },
@@ -15,6 +16,24 @@ export default [
       'no-var': 'error',
       'prefer-const': 'error',
       'object-shorthand': 'error',
+    },
+  },
+  // require() paths must exist, packages come before local files, and a blank line separates requires from code.
+  {
+    plugins: { 'import-x': importX },
+    settings: { 'import-x/resolver-next': [createNodeResolver()] },
+    rules: {
+      'import-x/no-unresolved': ['error', { commonjs: true }],
+      'import-x/order': [
+        'error',
+        {
+          groups: [
+            ['builtin', 'external'],
+            ['parent', 'sibling', 'index'],
+          ],
+        },
+      ],
+      'import-x/newline-after-import': 'error',
     },
   },
   // Catches a forgotten test.only (which silently skips every other test in that file in CI), tests with no expect, and duplicate titles.
