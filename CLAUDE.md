@@ -156,8 +156,8 @@ flag them.
    [franchiseRouter.js:97-104](src/routes/franchiseRouter.js#L97-L104). Anyone can delete a franchise.
 2. **SQL injection in `DB.updateUser`** — [database.js:78-100](src/database/database.js#L78-L100)
    builds the `UPDATE` with string interpolation instead of placeholders.
-3. `DB.updateUser` returns `this.getUser(email, password)` — breaks when the caller sends only a
-   name, or a password without an email.
+3. ~~`DB.updateUser` re-read with `getUser(email, password)` and broke on a name-only update~~ —
+   fixed: it now re-reads by id. It still changes email/password without asking for the current password.
 4. **Stack traces leak to clients** from the error handler in `service.js`.
 5. `DELETE /api/user/:userId` and `GET /api/user` are stubs (deliverable 5 / TDD builds these).
 6. `getFranchises` interpolates `limit`/`offset` straight into the SQL string.
