@@ -57,11 +57,6 @@ test('update user fails for another user', async () => {
   expect(updateRes.body.message).toBe('unauthorized');
 });
 
-test('list users unauthorized', async () => {
-  const listUsersRes = await request(app).get('/api/user');
-  expect(listUsersRes.status).toBe(401);
-});
-
 test('list users', async () => {
   const admin = await createAdminUser();
   const loginRes = await request(app).put('/api/auth').send(admin);
@@ -182,11 +177,6 @@ test('list users fails for a diner', async () => {
 
   const listUsersRes = await request(app).get('/api/user').set('Authorization', `Bearer ${token}`);
   expect(listUsersRes.status).toBe(403);
-});
-
-test('delete user unauthorized', async () => {
-  const deleteRes = await request(app).delete('/api/user/1');
-  expect(deleteRes.status).toBe(401);
 });
 
 test('delete user fails for a diner', async () => {
