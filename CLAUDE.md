@@ -60,7 +60,8 @@ deployService.sh      scp/ssh deploy to an EC2 host running pm2 (deliverable 1/2
   `authRouter.authenticateToken` gates individual routes. `req.user.isRole(role)` is attached at
   auth time and only exists on an authenticated request.
 - **DB singleton**: `database.js` instantiates `new DB()` at require time, which kicks off
-  `initializeDatabase()` (creates DB + tables, and seeds the default admin on first run).
+  `initializeDatabase()` (creates DB + tables). Queries wait on `DB.tablesReady`; `DB.initialized` also waits for
+  the admin from `config.defaultAdmin`, added on the first run only (none if unset).
   Every method opens its own connection and `connection.end()`s in a `finally`. There is no pool.
 - **Factory call**: `POST /api/order` posts to `${config.factory.url}/api/order` with the factory
   API key. Responses carry `followLinkToEndChaos` — that's the chaos-testing hook (deliverable 11).
@@ -117,6 +118,8 @@ curl localhost:3000/api/docs
 ```js
 module.exports = {
   jwtSecret: 'yourjwtsecrethere',
+  // Optional. Created on the database's first run; leave it out (no admin) or use a secret password when deployed.
+  defaultAdmin: { name: '常用名字', email: 'a@jwt.com', password: 'admin' },
   db: {
     connection: { host: '127.0.0.1', user: 'root', password: '...', database: 'pizza', connectTimeout: 60000 },
     listPerPage: 10,
@@ -126,7 +129,8 @@ module.exports = {
 ```
 
 The factory API key comes from your account at <https://pizza-factory.cs329.click>.
-Seed admin after the first run: `a@jwt.com` / `admin`. The course's `instruction/jwtPizzaData/`
+Seed admin after the first run: whatever `defaultAdmin` in `config.js` says (`a@jwt.com` / `admin` in the template).
+With no `defaultAdmin`, no admin is created. The course's `instruction/jwtPizzaData/`
 has curl scripts to create the franchisee, stores, and menu items.
 
 ### Conventions
@@ -167,7 +171,8 @@ flag them.
 4. **Stack traces leak to clients** from the error handler in `service.js`.
 5. ~~`DELETE /api/user/:userId` and `GET /api/user` were stubs~~ — built in deliverable 5 (TDD), admin only.
 6. `getFranchises` interpolates `limit`/`offset` straight into the SQL string.
-7. `initializeDatabase` does not `await this.addUser(defaultAdmin)`.
+7. ~~`initializeDatabase` did not await adding the default admin~~ — fixed: `DB.initialized` waits for it, and the
+   admin now comes from `config.defaultAdmin` (none if unset), so a deployment never gets the public `a@jwt.com` / `admin`.
 8. `version.json` ships as `00010101.010101` — a placeholder; CI stamps the real value.
 9. **Tokens never expire** — `setAuth` calls `jwt.sign` with no `expiresIn`, so a token is valid until logout.
 

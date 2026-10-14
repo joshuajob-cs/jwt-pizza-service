@@ -143,17 +143,23 @@ flowchart TD
   conn --> exists{"does database pizza exist?"}:::db
   exists --> create["CREATE DATABASE IF NOT EXISTS pizza<br/>USE pizza"]:::db
   create --> tables["run every CREATE TABLE IF NOT EXISTS<br/>from dbModel.js"]:::db
-  tables --> first{"was this the first run?"}
-  first -- "yes" --> admin["addUser: a@jwt.com / admin<br/>(not awaited)"]:::db
-  first -- "no" --> done["done"]
+  tables --> ready["DB.tablesReady: queries may start"]:::be
+  ready --> first{"was this the first run?"}
+  first -- "yes" --> cfg{"config.defaultAdmin set?"}
+  cfg -- "yes" --> admin["addDefaultAdmin: addUser with that email and password"]:::db
+  cfg -- "no" --> none["no admin. A deployment never gets the public a@jwt.com / admin"]
+  first -- "no" --> done["DB.initialized"]
   admin --> done
+  none --> done
   conn -. "MySQL down" .-> log["log the error. Server still starts, and queries fail later."]
   classDef be fill:#ccfbf1,stroke:#0f766e,color:#134e4a
   classDef db fill:#ede9fe,stroke:#7c3aed,color:#4c1d95
 ```
 
-Because the default admin is added without `await`, a script that logs in immediately after a fresh start can fail.
-That's why `scripts/generatePizzaData.sh` retries until the admin exists.
+Two promises, because adding the admin is itself a query: queries wait on `tablesReady`, and if they waited on
+`initialized` (which includes the admin) the admin's own query would wait on itself forever. The server starts
+listening without waiting for either, so a script that logs in right after a fresh start can still be too early.
+That's why `scripts/generatePizzaData.sh` and the frontend CI's admin check retry.
 
 ## Where values are pasted into SQL
 
