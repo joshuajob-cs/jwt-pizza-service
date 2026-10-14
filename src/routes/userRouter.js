@@ -78,7 +78,7 @@ userRouter.delete(
 );
 
 // listUsers
-/** [GET] /api/user - admin only (403 otherwise). Returns `{ users, more }`; see DB.getUsers. No paging or name filter yet. */
+/** [GET] /api/user - admin only (403 otherwise). `?page` (from 0) and `?limit`; returns `{ users, more }`. See DB.getUsers. No name filter yet. */
 userRouter.get(
   '/',
   authRouter.authenticateToken,
@@ -87,8 +87,8 @@ userRouter.get(
       return res.status(403).json({ message: 'unauthorized' });
     }
 
-    const users = await DB.getUsers();
-    res.json({ users, more: false });
+    const [users, more] = await DB.getUsers(req.query.page, req.query.limit);
+    res.json({ users, more });
   }),
 );
 

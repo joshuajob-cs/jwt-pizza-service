@@ -120,22 +120,36 @@ class DB {
   }
 
   /**
-   * Lists every user with their roles. Used by the admin dashboard.
-   * SQL: SELECT id, name, email FROM user; then SELECT role, objectId FROM userRole per user.
-   * Never selects the password column. No paging or name filter yet.
-   * @returns {Promise<object[]>} `[{ id, name, email, roles: [{ role, objectId }] }]`
+   * Lists one page of users with their roles. Used by the admin dashboard.
+   * SQL: SELECT id, name, email FROM user LIMIT ? OFFSET ?; then SELECT role, objectId FROM userRole per user.
+   * Never selects the password column. Pages count from 0, like getFranchises.
+   * Like getFranchises, it asks for one extra row to learn whether there is a next page (`more`), then trims it off.
+   * Unlike getFranchises, limit and offset go through `?` placeholders, sent as strings (mysql2's execute needs that for LIMIT).
+   * @param {number|string} [page] - 0-based; from HTTP it arrives as a string
+   * @param {number|string} [limit] - users per page
+   * @returns {Promise<[object[], boolean]>} `[[{ id, name, email, roles: [{ role, objectId }] }], more]`
    */
-  async getUsers() {
+  async getUsers(page = 0, limit = 10) {
+    page = Number(page);
+    limit = Number(limit);
+    const offset = page * limit;
+
     const connection = await this.getConnection();
     try {
-      const users = await this.query(connection, `SELECT id, name, email FROM user`);
+      let users = await this.query(connection, `SELECT id, name, email FROM user LIMIT ? OFFSET ?`, [String(limit + 1), String(offset)]);
+
+      const more = users.length > limit;
+      if (more) {
+        users = users.slice(0, limit);
+      }
+
       for (const user of users) {
         const roleResult = await this.query(connection, `SELECT role, objectId FROM userRole WHERE userId=?`, [user.id]);
         user.roles = roleResult.map((r) => {
           return { objectId: r.objectId || undefined, role: r.role };
         });
       }
-      return users;
+      return [users, more];
     } finally {
       connection.end();
     }
