@@ -70,6 +70,19 @@ test('list users', async () => {
   expect(listUsersRes.status).toBe(200);
 });
 
+test('list users returns users without passwords', async () => {
+  const admin = await createAdminUser();
+  const loginRes = await request(app).put('/api/auth').send(admin);
+
+  const listUsersRes = await request(app).get('/api/user').set('Authorization', `Bearer ${loginRes.body.token}`);
+  expect(listUsersRes.status).toBe(200);
+  expect(listUsersRes.body.users.length).toBeGreaterThan(0);
+  for (const user of listUsersRes.body.users) {
+    expect(user).toMatchObject({ id: expect.any(Number), name: expect.any(String), email: expect.any(String), roles: expect.any(Array) });
+    expect(user.password).toBeUndefined();
+  }
+});
+
 test('list users fails for a diner', async () => {
   const { token } = await registerUser();
 
