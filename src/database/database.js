@@ -18,9 +18,16 @@ const { Role } = require('../model/model.js');
 const dbModel = require('./dbModel.js');
 
 class DB {
-  /** Starts creating the database and tables; `this.initialized` is the promise every query waits on. */
+  /**
+   * Starts creating the database and tables. Every query waits on `tablesReady`; `initialized` waits for the
+   * default admin too. They're separate because adding the admin is itself a query: if it waited on a promise that
+   * includes itself, startup would hang forever.
+   */
   constructor() {
-    this.initialized = this.initializeDatabase();
+    this.tablesReady = this.initializeDatabase();
+    this.initialized = this.tablesReady
+      .then((created) => (created ? this.addDefaultAdmin() : undefined))
+      .catch((err) => console.error(JSON.stringify({ message: 'Error adding the default admin', exception: err.message })));
   }
 
   /**
@@ -562,8 +569,8 @@ class DB {
 
   /** Waits for initialization, then opens a new connection with the pizza database selected. Callers must end() it. */
   async getConnection() {
-    // Make sure the database is initialized before trying to get a connection.
-    await this.initialized;
+    // Make sure the database and tables exist before trying to get a connection.
+    await this.tablesReady;
     return this._getConnection();
   }
 
@@ -587,11 +594,23 @@ class DB {
   }
 
   /**
-   * Runs once at startup: creates the database and tables if needed, and on the very first run adds the
-   * default admin (a@jwt.com / admin).
+   * Adds the admin described by config.defaultAdmin (`{ name, email, password }`).
+   * With no defaultAdmin in config it adds nobody. The code is public, so a fixed login like a@jwt.com / admin would
+   * work on every deployment that forgot to change it; a missing setting has to mean no admin, not a known one.
+   */
+  async addDefaultAdmin() {
+    const admin = config.defaultAdmin;
+    if (!admin) {
+      console.log('No defaultAdmin in config, so no admin was created');
+      return;
+    }
+    await this.addUser({ ...admin, roles: [{ role: Role.Admin }] });
+  }
+
+  /**
+   * Runs once at startup: creates the database and tables if needed.
    * Errors are logged, not thrown, so the server still starts. Queries will fail later if MySQL is down.
-   * NOTE: `this.addUser(defaultAdmin)` is not awaited, so the admin may not exist yet when the first request
-   * arrives. This is why the seed script waits for the admin before seeding.
+   * @returns {Promise<boolean>} true when this run created the database (so the constructor adds the default admin)
    */
   async initializeDatabase() {
     try {
@@ -611,15 +630,13 @@ class DB {
           await connection.query(statement);
         }
 
-        if (!dbExists) {
-          const defaultAdmin = { name: '常用名字', email: 'a@jwt.com', password: 'admin', roles: [{ role: Role.Admin }] };
-          this.addUser(defaultAdmin);
-        }
+        return !dbExists;
       } finally {
         connection.end();
       }
     } catch (err) {
       console.error(JSON.stringify({ message: 'Error initializing database', exception: err.message, connection: config.db.connection }));
+      return false;
     }
   }
 
