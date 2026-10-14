@@ -63,8 +63,16 @@ test('list users unauthorized', async () => {
 });
 
 test('list users', async () => {
+  const admin = await createAdminUser();
+  const loginRes = await request(app).put('/api/auth').send(admin);
+
+  const listUsersRes = await request(app).get('/api/user').set('Authorization', `Bearer ${loginRes.body.token}`);
+  expect(listUsersRes.status).toBe(200);
+});
+
+test('list users fails for a diner', async () => {
   const { token } = await registerUser();
 
   const listUsersRes = await request(app).get('/api/user').set('Authorization', `Bearer ${token}`);
-  expect(listUsersRes.status).toBe(200);
+  expect(listUsersRes.status).toBe(403);
 });
