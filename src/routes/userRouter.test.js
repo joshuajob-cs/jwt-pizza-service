@@ -114,6 +114,37 @@ test('list users page 1 continues after page 0', async () => {
   }
 });
 
+test('list users filters by exact name', async () => {
+  const { user } = await registerUser();
+  const admin = await createAdminUser();
+  const loginRes = await request(app).put('/api/auth').send(admin);
+
+  const listUsersRes = await request(app).get(`/api/user?name=${user.name}`).set('Authorization', `Bearer ${loginRes.body.token}`);
+  expect(listUsersRes.status).toBe(200);
+  expect(listUsersRes.body).toEqual({ users: [{ id: user.id, name: user.name, email: user.email, roles: [{ role: 'diner' }] }], more: false });
+});
+
+test('list users filters with a * wildcard', async () => {
+  const { user } = await registerUser();
+  const admin = await createAdminUser();
+  const loginRes = await request(app).put('/api/auth').send(admin);
+
+  const listUsersRes = await request(app)
+    .get(`/api/user?name=*${user.name.substring(2, 8)}*`)
+    .set('Authorization', `Bearer ${loginRes.body.token}`);
+  expect(listUsersRes.status).toBe(200);
+  expect(listUsersRes.body.users.map((u) => u.id)).toContain(user.id);
+});
+
+test('list users with no name match is empty', async () => {
+  const admin = await createAdminUser();
+  const loginRes = await request(app).put('/api/auth').send(admin);
+
+  const listUsersRes = await request(app).get('/api/user?name=nobody-has-this-name').set('Authorization', `Bearer ${loginRes.body.token}`);
+  expect(listUsersRes.status).toBe(200);
+  expect(listUsersRes.body).toEqual({ users: [], more: false });
+});
+
 test.each(['limit=abc', 'page=abc', 'limit=1.5', 'limit=0', 'limit=101', 'page=-1'])('list users rejects %s', async (query) => {
   const admin = await createAdminUser();
   const loginRes = await request(app).put('/api/auth').send(admin);
