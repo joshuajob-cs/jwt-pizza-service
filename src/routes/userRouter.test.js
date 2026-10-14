@@ -233,3 +233,12 @@ test('delete unknown user', async () => {
   expect(deleteRes.status).toBe(404);
   expect(deleteRes.body.message).toBe('unknown user');
 });
+
+test('delete user rejects an id that is not a whole number', async () => {
+  const admin = await createAdminUser();
+  const loginRes = await request(app).put('/api/auth').send(admin);
+
+  const deleteRes = await request(app).delete('/api/user/abc').set('Authorization', `Bearer ${loginRes.body.token}`);
+  expect(deleteRes.status).toBe(400);
+  expect(deleteRes.body.message).toBe('userId must be a whole number');
+});

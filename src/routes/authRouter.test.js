@@ -59,11 +59,13 @@ test('register fails without a password', async () => {
   expect(registerRes.body.message).toBe('name, email, and password are required');
 });
 
-// Every route behind authenticateToken. The user list/delete stubs are left to ⓹, and DELETE /api/franchise/:id has no guard (a known hole).
+// Every route behind authenticateToken. DELETE /api/franchise/:id has no guard (a known hole).
 test.each([
   ['DELETE', '/api/auth'],
   ['GET', '/api/user/me'],
   ['PUT', '/api/user/1'],
+  ['GET', '/api/user'],
+  ['DELETE', '/api/user/1'],
   ['PUT', '/api/order/menu'],
   ['GET', '/api/order'],
   ['POST', '/api/order'],
