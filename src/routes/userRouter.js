@@ -1,9 +1,9 @@
 /**
- * @fileoverview /api/user endpoints: who am I, and update a user. Delete and list are placeholders the
- * TDD deliverable builds out.
+ * @fileoverview /api/user endpoints: who am I, update a user, and (admin only) list users. Delete is a
+ * placeholder the TDD deliverable builds out.
  */
 const express = require('express');
-const { asyncHandler } = require('../endpointHelper.js');
+const { asyncHandler, StatusCodeError } = require('../endpointHelper.js');
 const { DB, Role } = require('../database/database.js');
 const { authRouter, setAuth } = require('./authRouter.js');
 
@@ -78,7 +78,10 @@ userRouter.delete(
 );
 
 // listUsers
-/** [GET] /api/user - admin only (403 otherwise). `?page` (from 0) and `?limit`; returns `{ users, more }`. See DB.getUsers. No name filter yet. */
+/**
+ * [GET] /api/user - admin only (403 otherwise). `?page` (from 0, default 0) and `?limit` (1-100, default 10);
+ * anything else is a 400. Returns `{ users, more }`. See DB.getUsers. No name filter yet.
+ */
 userRouter.get(
   '/',
   authRouter.authenticateToken,
@@ -87,7 +90,13 @@ userRouter.get(
       return res.status(403).json({ message: 'unauthorized' });
     }
 
-    const [users, more] = await DB.getUsers(req.query.page, req.query.limit);
+    const page = Number(req.query.page ?? 0);
+    const limit = Number(req.query.limit ?? 10);
+    if (!Number.isInteger(page) || page < 0 || !Number.isInteger(limit) || limit < 1 || limit > 100) {
+      throw new StatusCodeError('page must be a whole number from 0 and limit from 1 to 100', 400);
+    }
+
+    const [users, more] = await DB.getUsers(page, limit);
     res.json({ users, more });
   }),
 );
