@@ -83,6 +83,19 @@ test('list users returns users without passwords', async () => {
   }
 });
 
+test('list users limits the page size and reports more', async () => {
+  await registerUser();
+  await registerUser();
+  await registerUser();
+  const admin = await createAdminUser();
+  const loginRes = await request(app).put('/api/auth').send(admin);
+
+  const listUsersRes = await request(app).get('/api/user?limit=2').set('Authorization', `Bearer ${loginRes.body.token}`);
+  expect(listUsersRes.status).toBe(200);
+  expect(listUsersRes.body.users).toHaveLength(2);
+  expect(listUsersRes.body.more).toBe(true);
+});
+
 test('list users fails for a diner', async () => {
   const { token } = await registerUser();
 
