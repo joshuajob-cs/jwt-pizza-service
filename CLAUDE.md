@@ -42,7 +42,7 @@ src/
     dbModel.js        CREATE TABLE statements
   routes/
     authRouter.js     register/login/logout + setAuthUser + authenticateToken
-    userRouter.js     /me, update user (delete + list are stubs)
+    userRouter.js     /me, update user, list users (delete is a stub)
     orderRouter.js    menu, get/create orders, calls the Factory
     franchiseRouter.js franchises + stores CRUD
 deployService.sh      scp/ssh deploy to an EC2 host running pm2 (deliverable 1/2 era)
@@ -77,7 +77,7 @@ deployService.sh      scp/ssh deploy to an EC2 host running pm2 (deliverable 1/2
 | GET | `/api/user/me` | ✓ | returns `req.user` |
 | PUT | `/api/user/:userId` | ✓ | self or admin; re-issues token |
 | DELETE | `/api/user/:userId` | ✓ | **stub — "not implemented"** |
-| GET | `/api/user` | ✓ | **stub — "not implemented"** |
+| GET | `/api/user` | ✓ admin | `?page` (from 0) `&limit` (1-100) `&name` (`*` wildcard); bad values → 400 |
 | GET | `/api/order/menu` | — | |
 | PUT | `/api/order/menu` | ✓ admin | |
 | GET | `/api/order` | ✓ | paginated by `config.db.listPerPage` |
@@ -165,7 +165,7 @@ flag them.
 3. ~~`DB.updateUser` re-read with `getUser(email, password)` and broke on a name-only update~~ —
    fixed: it now re-reads by id. It still changes email/password without asking for the current password.
 4. **Stack traces leak to clients** from the error handler in `service.js`.
-5. `DELETE /api/user/:userId` and `GET /api/user` are stubs (deliverable 5 / TDD builds these).
+5. `DELETE /api/user/:userId` is a stub (deliverable 5 / TDD builds it; list users is done).
 6. `getFranchises` interpolates `limit`/`offset` straight into the SQL string.
 7. `initializeDatabase` does not `await this.addUser(defaultAdmin)`.
 8. `version.json` ships as `00010101.010101` — a placeholder; CI stamps the real value.

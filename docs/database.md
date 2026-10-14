@@ -94,6 +94,7 @@ R = reads, W = writes (INSERT/UPDATE/DELETE).
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `addUser` | register, `init.js`, first startup | W | W | | R* | | | | |
 | `getUser` | login | R | R | | | | | | |
+| `getUsers` | GET /api/user | R | R | | | | | | |
 | `updateUser` | PUT /api/user/:id | W, R | R | | | | | | |
 | `loginUser` | register, login, update user | | | W | | | | | |
 | `isLoggedIn` | `setAuthUser`, every request with a token | | | R | | | | | |
