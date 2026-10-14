@@ -78,11 +78,15 @@ userRouter.delete(
 );
 
 // listUsers
-/** [GET] /api/user - placeholder; responds with an empty list. Built in the TDD deliverable. */
+/** [GET] /api/user - admin only (403 otherwise). Still a placeholder list; built in the TDD deliverable. */
 userRouter.get(
   '/',
   authRouter.authenticateToken,
   asyncHandler(async (req, res) => {
+    if (!req.user.isRole(Role.Admin)) {
+      return res.status(403).json({ message: 'unauthorized' });
+    }
+
     res.json({ message: 'not implemented', users: [], more: false });
   }),
 );
