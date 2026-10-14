@@ -96,6 +96,24 @@ test('list users limits the page size and reports more', async () => {
   expect(listUsersRes.body.more).toBe(true);
 });
 
+test('list users page 1 continues after page 0', async () => {
+  await registerUser();
+  await registerUser();
+  await registerUser();
+  const admin = await createAdminUser();
+  const loginRes = await request(app).put('/api/auth').send(admin);
+  const auth = `Bearer ${loginRes.body.token}`;
+
+  const page0Res = await request(app).get('/api/user?page=0&limit=2').set('Authorization', auth);
+  const page1Res = await request(app).get('/api/user?page=1&limit=2').set('Authorization', auth);
+  expect(page1Res.status).toBe(200);
+  expect(page1Res.body.users).toHaveLength(2);
+  const page0Ids = page0Res.body.users.map((user) => user.id);
+  for (const user of page1Res.body.users) {
+    expect(page0Ids).not.toContain(user.id);
+  }
+});
+
 test.each(['limit=abc', 'page=abc', 'limit=1.5', 'limit=0', 'limit=101', 'page=-1'])('list users rejects %s', async (query) => {
   const admin = await createAdminUser();
   const loginRes = await request(app).put('/api/auth').send(admin);
