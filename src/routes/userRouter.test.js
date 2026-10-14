@@ -96,13 +96,13 @@ test('list users limits the page size and reports more', async () => {
   expect(listUsersRes.body.more).toBe(true);
 });
 
-test.each(['limit=abc', 'page=abc', 'limit=1.5', 'limit=0', 'page=-1'])('list users rejects %s', async (query) => {
+test.each(['limit=abc', 'page=abc', 'limit=1.5', 'limit=0', 'limit=101', 'page=-1'])('list users rejects %s', async (query) => {
   const admin = await createAdminUser();
   const loginRes = await request(app).put('/api/auth').send(admin);
 
   const listUsersRes = await request(app).get(`/api/user?${query}`).set('Authorization', `Bearer ${loginRes.body.token}`);
   expect(listUsersRes.status).toBe(400);
-  expect(listUsersRes.body.message).toBe('page must be a whole number from 0 and limit from 1');
+  expect(listUsersRes.body.message).toBe('page must be a whole number from 0 and limit from 1 to 100');
 });
 
 test('list users fails for a diner', async () => {
