@@ -56,3 +56,15 @@ test('update user fails for another user', async () => {
   expect(updateRes.status).toBe(403);
   expect(updateRes.body.message).toBe('unauthorized');
 });
+
+test('list users unauthorized', async () => {
+  const listUsersRes = await request(app).get('/api/user');
+  expect(listUsersRes.status).toBe(401);
+});
+
+test('list users', async () => {
+  const { token } = await registerUser();
+
+  const listUsersRes = await request(app).get('/api/user').set('Authorization', `Bearer ${token}`);
+  expect(listUsersRes.status).toBe(200);
+});
