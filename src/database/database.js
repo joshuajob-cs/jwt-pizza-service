@@ -124,7 +124,8 @@ class DB {
    * SQL: SELECT id, name, email FROM user WHERE name LIKE ? LIMIT ? OFFSET ?; then SELECT role, objectId FROM userRole per user.
    * Never selects the password column. Pages count from 0, like getFranchises.
    * Like getFranchises, it asks for one extra row to learn whether there is a next page (`more`), then trims it off.
-   * `*` in the filter becomes SQL's `%` wildcard, like getFranchises.
+   * `*` in the filter becomes SQL's `%` wildcard, like getFranchises. Unlike getFranchises, `%`, `_`, and `\` typed in
+   * the filter are escaped first, so they match only themselves; `*` is the one wildcard.
    * Unlike getFranchises, limit and offset go through `?` placeholders, sent as strings (mysql2's execute needs that for LIMIT).
    * @param {number|string} [page] - 0-based; from HTTP it arrives as a string
    * @param {number|string} [limit] - users per page
@@ -135,7 +136,7 @@ class DB {
     page = Number(page);
     limit = Number(limit);
     const offset = page * limit;
-    nameFilter = nameFilter.replace(/\*/g, '%');
+    nameFilter = nameFilter.replace(/[\\%_]/g, '\\$&').replace(/\*/g, '%');
 
     const connection = await this.getConnection();
     try {
