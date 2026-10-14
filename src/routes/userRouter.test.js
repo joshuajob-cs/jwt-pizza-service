@@ -183,3 +183,53 @@ test('list users fails for a diner', async () => {
   const listUsersRes = await request(app).get('/api/user').set('Authorization', `Bearer ${token}`);
   expect(listUsersRes.status).toBe(403);
 });
+
+test('delete user unauthorized', async () => {
+  const deleteRes = await request(app).delete('/api/user/1');
+  expect(deleteRes.status).toBe(401);
+});
+
+test('delete user fails for a diner', async () => {
+  const { user: victim } = await registerUser();
+  const { token } = await registerUser();
+
+  const deleteRes = await request(app).delete(`/api/user/${victim.id}`).set('Authorization', `Bearer ${token}`);
+  expect(deleteRes.status).toBe(403);
+  expect(deleteRes.body.message).toBe('unauthorized');
+});
+
+test('delete user by an admin', async () => {
+  const { user } = await registerUser();
+  const admin = await createAdminUser();
+  const loginRes = await request(app).put('/api/auth').send(admin);
+  const auth = `Bearer ${loginRes.body.token}`;
+
+  const deleteRes = await request(app).delete(`/api/user/${user.id}`).set('Authorization', auth);
+  expect(deleteRes.status).toBe(200);
+  expect(deleteRes.body).toEqual({ message: 'user deleted' });
+
+  const listUsersRes = await request(app).get(`/api/user?name=${user.name}`).set('Authorization', auth);
+  expect(listUsersRes.body.users).toEqual([]);
+});
+
+test('a deleted user can no longer use their token or log in', async () => {
+  const { user, token } = await registerUser();
+  const admin = await createAdminUser();
+  const loginRes = await request(app).put('/api/auth').send(admin);
+
+  await request(app).delete(`/api/user/${user.id}`).set('Authorization', `Bearer ${loginRes.body.token}`);
+
+  const meRes = await request(app).get('/api/user/me').set('Authorization', `Bearer ${token}`);
+  expect(meRes.status).toBe(401);
+  const userLoginRes = await request(app).put('/api/auth').send({ email: user.email, password: 'a' });
+  expect(userLoginRes.status).toBe(404);
+});
+
+test('delete unknown user', async () => {
+  const admin = await createAdminUser();
+  const loginRes = await request(app).put('/api/auth').send(admin);
+
+  const deleteRes = await request(app).delete('/api/user/999999').set('Authorization', `Bearer ${loginRes.body.token}`);
+  expect(deleteRes.status).toBe(404);
+  expect(deleteRes.body.message).toBe('unknown user');
+});
