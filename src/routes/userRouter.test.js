@@ -145,6 +145,29 @@ test('list users with no name match is empty', async () => {
   expect(listUsersRes.body).toEqual({ users: [], more: false });
 });
 
+test('list users treats % and _ in the name filter as plain text', async () => {
+  const { user } = await registerUser();
+  const admin = await createAdminUser();
+  const loginRes = await request(app).put('/api/auth').send(admin);
+  const auth = `Bearer ${loginRes.body.token}`;
+
+  const percentRes = await request(app).get('/api/user?name=%25').set('Authorization', auth);
+  expect(percentRes.body).toEqual({ users: [], more: false });
+
+  const underscoreName = user.name.substring(0, 4) + '_' + user.name.substring(5);
+  const underscoreRes = await request(app).get(`/api/user?name=${underscoreName}`).set('Authorization', auth);
+  expect(underscoreRes.body).toEqual({ users: [], more: false });
+});
+
+test('list users rejects a repeated name', async () => {
+  const admin = await createAdminUser();
+  const loginRes = await request(app).put('/api/auth').send(admin);
+
+  const listUsersRes = await request(app).get('/api/user?name=a&name=b').set('Authorization', `Bearer ${loginRes.body.token}`);
+  expect(listUsersRes.status).toBe(400);
+  expect(listUsersRes.body.message).toBe('name must be a single value');
+});
+
 test.each(['limit=abc', 'page=abc', 'limit=1.5', 'limit=0', 'limit=101', 'page=-1'])('list users rejects %s', async (query) => {
   const admin = await createAdminUser();
   const loginRes = await request(app).put('/api/auth').send(admin);
