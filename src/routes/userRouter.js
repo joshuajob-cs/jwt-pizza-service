@@ -77,7 +77,7 @@ userRouter.put(
 // deleteUser
 /**
  * [DELETE] /api/user/:userId - admin only (403 otherwise). Removes the user, their roles, and their tokens;
- * their orders stay. 404 for an unknown id. See DB.deleteUser.
+ * their orders stay. 400 when the id isn't a whole number, 404 for an unknown id. See DB.deleteUser.
  */
 userRouter.delete(
   '/:userId',
@@ -87,7 +87,12 @@ userRouter.delete(
       return res.status(403).json({ message: 'unauthorized' });
     }
 
-    await DB.deleteUser(Number(req.params.userId));
+    const userId = Number(req.params.userId);
+    if (!Number.isInteger(userId)) {
+      throw new StatusCodeError('userId must be a whole number', 400);
+    }
+
+    await DB.deleteUser(userId);
     res.json({ message: 'user deleted' });
   }),
 );
