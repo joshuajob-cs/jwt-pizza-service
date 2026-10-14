@@ -120,23 +120,26 @@ class DB {
   }
 
   /**
-   * Lists one page of users with their roles. Used by the admin dashboard.
-   * SQL: SELECT id, name, email FROM user LIMIT ? OFFSET ?; then SELECT role, objectId FROM userRole per user.
+   * Lists one page of users with their roles, optionally filtered by name. Used by the admin dashboard.
+   * SQL: SELECT id, name, email FROM user WHERE name LIKE ? LIMIT ? OFFSET ?; then SELECT role, objectId FROM userRole per user.
    * Never selects the password column. Pages count from 0, like getFranchises.
    * Like getFranchises, it asks for one extra row to learn whether there is a next page (`more`), then trims it off.
+   * `*` in the filter becomes SQL's `%` wildcard, like getFranchises.
    * Unlike getFranchises, limit and offset go through `?` placeholders, sent as strings (mysql2's execute needs that for LIMIT).
    * @param {number|string} [page] - 0-based; from HTTP it arrives as a string
    * @param {number|string} [limit] - users per page
+   * @param {string} [nameFilter] - exact name, or `*` wildcards; `*` alone matches everyone
    * @returns {Promise<[object[], boolean]>} `[[{ id, name, email, roles: [{ role, objectId }] }], more]`
    */
-  async getUsers(page = 0, limit = 10) {
+  async getUsers(page = 0, limit = 10, nameFilter = '*') {
     page = Number(page);
     limit = Number(limit);
     const offset = page * limit;
+    nameFilter = nameFilter.replace(/\*/g, '%');
 
     const connection = await this.getConnection();
     try {
-      let users = await this.query(connection, `SELECT id, name, email FROM user LIMIT ? OFFSET ?`, [String(limit + 1), String(offset)]);
+      let users = await this.query(connection, `SELECT id, name, email FROM user WHERE name LIKE ? LIMIT ? OFFSET ?`, [nameFilter, String(limit + 1), String(offset)]);
 
       const more = users.length > limit;
       if (more) {

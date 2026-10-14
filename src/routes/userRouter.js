@@ -80,7 +80,7 @@ userRouter.delete(
 // listUsers
 /**
  * [GET] /api/user - admin only (403 otherwise). `?page` (from 0, default 0) and `?limit` (1-100, default 10);
- * anything else is a 400. Returns `{ users, more }`. See DB.getUsers. No name filter yet.
+ * anything else is a 400. `?name` filters by name, `*` as a wildcard. Returns `{ users, more }`. See DB.getUsers.
  */
 userRouter.get(
   '/',
@@ -96,7 +96,7 @@ userRouter.get(
       throw new StatusCodeError('page must be a whole number from 0 and limit from 1 to 100', 400);
     }
 
-    const [users, more] = await DB.getUsers(page, limit);
+    const [users, more] = await DB.getUsers(page, limit, req.query.name);
     res.json({ users, more });
   }),
 );
