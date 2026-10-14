@@ -96,6 +96,7 @@ R = reads, W = writes (INSERT/UPDATE/DELETE).
 | `getUser` | login | R | R | | | | | | |
 | `getUsers` | GET /api/user | R | R | | | | | | |
 | `updateUser` | PUT /api/user/:id | W, R | R | | | | | | |
+| `deleteUser` | DELETE /api/user/:id | W | W | W | | | | | |
 | `loginUser` | register, login, update user | | | W | | | | | |
 | `isLoggedIn` | `setAuthUser`, every request with a token | | | R | | | | | |
 | `logoutUser` | logout | | | W | | | | | |

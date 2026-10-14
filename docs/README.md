@@ -37,7 +37,7 @@ jwt-pizza-service/
     │   └── model.js          The Role names: diner, franchisee, admin.
     ├── routes/
     │   ├── authRouter.js     /api/auth: register, login, logout. Also setAuthUser and authenticateToken.
-    │   ├── userRouter.js     /api/user: who am I, update a user, list users (delete is a placeholder).
+    │   ├── userRouter.js     /api/user: who am I, update a user, list and delete users.
     │   ├── orderRouter.js    /api/order: menu, order history, place an order (calls the Factory).
     │   └── franchiseRouter.js  /api/franchise: list, create, and delete franchises and their stores.
     └── database/
@@ -125,7 +125,7 @@ Every endpoint also appears in its router's `.docs` array, which `GET /api/docs`
 | DELETE | `/api/auth` | authRouter | login | `logoutUser` |
 | GET | `/api/user/me` | userRouter | login | — (returns the token's user) |
 | PUT | `/api/user/:userId` | userRouter | login, self or admin | `updateUser`, `loginUser` |
-| DELETE | `/api/user/:userId` | userRouter | login | placeholder |
+| DELETE | `/api/user/:userId` | userRouter | login, admin | `deleteUser` |
 | GET | `/api/user` | userRouter | login, admin | `getUsers` |
 | GET | `/api/order/menu` | orderRouter | — | `getMenu` |
 | PUT | `/api/order/menu` | orderRouter | admin | `addMenuItem`, `getMenu` |
