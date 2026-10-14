@@ -196,6 +196,39 @@ class DB {
   }
 
   /**
+   * Deletes a user, their roles, and their login tokens, in one transaction.
+   * SQL: DELETE FROM auth WHERE userId=?
+   *      DELETE FROM userRole WHERE userId=?
+   *      DELETE FROM user WHERE id=?
+   * auth rows must go, or the user's token would keep passing isLoggedIn (auth has no foreign key to user).
+   * userRole rows go before the user because userRole.userId is a foreign key to user.
+   * Their orders stay: dinerOrder has no foreign key to user, and the order history is worth keeping.
+   * @param {number} userId
+   * @throws {StatusCodeError} 404 'unknown user' when no user has that id; 500 when the transaction fails
+   */
+  async deleteUser(userId) {
+    const connection = await this.getConnection();
+    try {
+      await connection.beginTransaction();
+      let deleteResult;
+      try {
+        await this.query(connection, `DELETE FROM auth WHERE userId=?`, [userId]);
+        await this.query(connection, `DELETE FROM userRole WHERE userId=?`, [userId]);
+        deleteResult = await this.query(connection, `DELETE FROM user WHERE id=?`, [userId]);
+        await connection.commit();
+      } catch {
+        await connection.rollback();
+        throw new StatusCodeError('unable to delete user', 500);
+      }
+      if (deleteResult.affectedRows === 0) {
+        throw new StatusCodeError('unknown user', 404);
+      }
+    } finally {
+      connection.end();
+    }
+  }
+
+  /**
    * Records a token as logged in by storing its signature.
    * SQL: INSERT INTO auth (token, userId) VALUES (?, ?) ON DUPLICATE KEY UPDATE token=token
    * `ON DUPLICATE KEY UPDATE token=token` does nothing if the same token is already there, instead of erroring.

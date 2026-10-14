@@ -1,6 +1,5 @@
 /**
- * @fileoverview /api/user endpoints: who am I, update a user, and (admin only) list users. Delete is a
- * placeholder the TDD deliverable builds out.
+ * @fileoverview /api/user endpoints: who am I, update a user, and (admin only) list and delete users.
  */
 const express = require('express');
 const { asyncHandler, StatusCodeError } = require('../endpointHelper.js');
@@ -76,12 +75,20 @@ userRouter.put(
 );
 
 // deleteUser
-/** [DELETE] /api/user/:userId - placeholder; responds 'not implemented'. Built in the TDD deliverable. */
+/**
+ * [DELETE] /api/user/:userId - admin only (403 otherwise). Removes the user, their roles, and their tokens;
+ * their orders stay. 404 for an unknown id. See DB.deleteUser.
+ */
 userRouter.delete(
   '/:userId',
   authRouter.authenticateToken,
   asyncHandler(async (req, res) => {
-    res.json({ message: 'not implemented' });
+    if (!req.user.isRole(Role.Admin)) {
+      return res.status(403).json({ message: 'unauthorized' });
+    }
+
+    await DB.deleteUser(Number(req.params.userId));
+    res.json({ message: 'user deleted' });
   }),
 );
 
