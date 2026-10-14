@@ -78,7 +78,7 @@ userRouter.delete(
 );
 
 // listUsers
-/** [GET] /api/user - admin only (403 otherwise). Still a placeholder list; built in the TDD deliverable. */
+/** [GET] /api/user - admin only (403 otherwise). Returns `{ users, more }`; see DB.getUsers. No paging or name filter yet. */
 userRouter.get(
   '/',
   authRouter.authenticateToken,
@@ -87,7 +87,8 @@ userRouter.get(
       return res.status(403).json({ message: 'unauthorized' });
     }
 
-    res.json({ message: 'not implemented', users: [], more: false });
+    const users = await DB.getUsers();
+    res.json({ users, more: false });
   }),
 );
 

@@ -120,6 +120,28 @@ class DB {
   }
 
   /**
+   * Lists every user with their roles. Used by the admin dashboard.
+   * SQL: SELECT id, name, email FROM user; then SELECT role, objectId FROM userRole per user.
+   * Never selects the password column. No paging or name filter yet.
+   * @returns {Promise<object[]>} `[{ id, name, email, roles: [{ role, objectId }] }]`
+   */
+  async getUsers() {
+    const connection = await this.getConnection();
+    try {
+      const users = await this.query(connection, `SELECT id, name, email FROM user`);
+      for (const user of users) {
+        const roleResult = await this.query(connection, `SELECT role, objectId FROM userRole WHERE userId=?`, [user.id]);
+        user.roles = roleResult.map((r) => {
+          return { objectId: r.objectId || undefined, role: r.role };
+        });
+      }
+      return users;
+    } finally {
+      connection.end();
+    }
+  }
+
+  /**
    * Updates whichever of name, email, and password were provided, then re-reads the user.
    * SQL: UPDATE user SET ... WHERE id=...
    * NOTE: the values are pasted straight into the SQL string instead of using `?` placeholders, so a
