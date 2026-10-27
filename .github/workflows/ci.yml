@@ -86,6 +86,14 @@ jobs:
           sed -i "s/tempdbpassword/${{ secrets.DB_PASSWORD }}/g" dist/config.js
           sed -i "s/127.0.0.1/${{ secrets.DB_HOSTNAME }}/g" dist/config.js
 
+      - name: Add admin to deployed config
+        env:
+          ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+        run: |
+          admin=$(jq -n --arg email "$ADMIN_EMAIL" --arg password "$ADMIN_PASSWORD" '{name: "admin", email: $email, password: $password}')
+          echo "module.exports.defaultAdmin = $admin;" >> dist/config.js
+
       - name: Update distribution artifact
         uses: actions/upload-artifact@v4
         with:
