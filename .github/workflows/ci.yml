@@ -134,3 +134,13 @@ jobs:
       - name: Deploy new container
         run: |
           aws ecs update-service --cluster jwt-pizza-service --service jwt-pizza-service --force-new-deployment
+
+      - name: Wait for the new container
+        run: |
+          aws ecs wait services-stable --cluster jwt-pizza-service --services jwt-pizza-service
+
+      - name: Smoke test
+        run: |
+          deployed=$(curl -sf https://pizza-service.joshuajob-cs.click | jq -r '.version')
+          echo "built $version, deployed $deployed"
+          test "$deployed" = "$version"
