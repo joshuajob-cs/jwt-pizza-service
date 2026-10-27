@@ -1,16 +1,20 @@
 # Check if host is provided as a command line argument
 if [ -z "$1" ]; then
-  echo "Usage: $0 <host>"
+  echo "Usage: [ADMIN_EMAIL=... ADMIN_PASSWORD=...] $0 <host>"
   echo "Example: $0 http://localhost:3000"
   exit 1
 fi
 host=$1
 
+# The admin to log in as. Defaults to the local dev admin; a deployment has its own, so pass it in the environment
+# (not as arguments, which would leave the password in shell history).
+admin_login=$(jq -n --arg email "${ADMIN_EMAIL:-a@jwt.com}" --arg password "${ADMIN_PASSWORD:-admin}" '{email: $email, password: $password}')
+
 # On a brand-new database the service creates the default admin without awaiting it: first the user
 # row, then (later) its admin role. Logging in too early gets "unknown user", or a token with no admin
 # role, and every admin call below fails with 401. Keep logging in until the admin role shows up.
 for _ in $(seq 1 120); do
-  response=$(curl -s -X PUT $host/api/auth -d '{"email":"a@jwt.com", "password":"admin"}' -H 'Content-Type: application/json')
+  response=$(curl -s -X PUT $host/api/auth -d "$admin_login" -H 'Content-Type: application/json')
   token=$(echo $response | jq -r 'if any(.user.roles[]?; .role == "admin") then .token else empty end' 2>/dev/null)
   [ -n "$token" ] && break
   sleep 0.5
