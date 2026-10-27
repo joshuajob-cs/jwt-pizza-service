@@ -28,6 +28,16 @@
       "Default": "vpc-123456789",
       "AllowedPattern": "^(?:vpc-[0-9a-f]{8,17}|)$",
       "ConstraintDescription": "VPC ID must begin with 'vpc-' and have a valid uuid"
+    },
+    "HostedZoneName": {
+      "Type": "String",
+      "Description": "Route 53 hosted zone that holds the service's DNS record (note the trailing dot)",
+      "Default": "joshuajob-cs.click."
+    },
+    "ServiceDomainName": {
+      "Type": "String",
+      "Description": "DNS name pointed at the ALB",
+      "Default": "pizza-service.joshuajob-cs.click"
     }
   },
   "Resources": {
@@ -112,9 +122,7 @@
         "Tags": [],
         "EnableECSManagedTags": true
       },
-      "DependsOn": [
-        "Listener"
-      ]
+      "DependsOn": ["Listener"]
     },
     "LoadBalancer": {
       "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
@@ -173,6 +181,26 @@
           }
         ]
       }
+    },
+    "DNSRecord": {
+      "Type": "AWS::Route53::RecordSet",
+      "Properties": {
+        "HostedZoneName": {
+          "Ref": "HostedZoneName"
+        },
+        "Name": {
+          "Ref": "ServiceDomainName"
+        },
+        "Type": "A",
+        "AliasTarget": {
+          "DNSName": {
+            "Fn::GetAtt": ["LoadBalancer", "DNSName"]
+          },
+          "HostedZoneId": {
+            "Fn::GetAtt": ["LoadBalancer", "CanonicalHostedZoneID"]
+          }
+        }
+      }
     }
   },
   "Outputs": {
@@ -204,6 +232,12 @@
       "Description": "Load balancer target group",
       "Value": {
         "Ref": "TargetGroup"
+      }
+    },
+    "ServiceURL": {
+      "Description": "Public URL of the service",
+      "Value": {
+        "Fn::Join": ["", ["https://", { "Ref": "ServiceDomainName" }]]
       }
     }
   }
