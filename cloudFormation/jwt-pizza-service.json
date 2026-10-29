@@ -152,7 +152,7 @@
         "TargetGroupAttributes": [
           {
             "Key": "deregistration_delay.timeout_seconds",
-            "Value": "300"
+            "Value": "30"
           }
         ]
       }
