@@ -5,6 +5,9 @@
  * command-line argument, e.g. `node index.js 4000`, and defaults to 3000.
  */
 const app = require('./service.js');
+const metrics = require('./metrics.js');
+
+metrics.sendMetricsPeriodically(10000);
 
 const port = process.argv[2] || 3000;
 app.listen(port, () => {
