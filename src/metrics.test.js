@@ -25,7 +25,10 @@ function valueOf(batch, name, attributes = {}) {
   return point.asDouble;
 }
 
+// Counters never reset and every test in this file shares them, so tests check the change, not the total.
 test('GET request is counted', async () => {
-  // TODO: send a GET with supertest, then assert http_requests{method: 'GET'} in sendNow()'s batch.
-  // Counters never reset and every test in this file shares them, so decide: exact value, or before/after?
+  const before = valueOf(sendNow(), 'http_requests', { method: 'GET' });
+  await request(app).get('/');
+  const after = valueOf(sendNow(), 'http_requests', { method: 'GET' });
+  expect(after - before).toBe(1);
 });
