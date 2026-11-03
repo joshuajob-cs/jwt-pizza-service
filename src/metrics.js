@@ -66,17 +66,28 @@ function countActiveUsers() {
 }
 
 // Running pizza purchase totals since the service started. Never reset, like the request counts.
-// orders: factory calls by outcome (failure = creation failure); latencyMs: total time waiting on the factory.
+// orders: purchases by outcome (failure = creation failure); latencyMs: total time to answer them.
 const purchases = { orders: { success: 0, failure: 0 }, pizzasSold: 0, revenue: 0, latencyMs: 0 };
 
-/** Record one call to the Pizza Factory: whether it made the pizzas, how long it took, and the order's items. */
-function pizzaPurchase(success, latencyMs, items) {
-  purchases.orders[success ? 'success' : 'failure']++;
-  purchases.latencyMs += latencyMs;
-  if (success) {
-    purchases.pizzasSold += items.length;
-    purchases.revenue += items.reduce((total, item) => total + item.price, 0);
-  }
+/**
+ * Express middleware for the order route, placed after authenticateToken so a 401 never counts.
+ * Once the response is sent: 200 = pizzas made; anything else (factory refused, factory unreachable,
+ * DB error) = creation failure. Prices come from the request body, the same ones the order saves.
+ */
+function pizzaTracker(req, res, next) {
+  const start = performance.now();
+  res.on('finish', () => {
+    purchases.latencyMs += performance.now() - start;
+    if (res.statusCode === 200) {
+      purchases.orders.success++;
+      const items = req.body.items || [];
+      purchases.pizzasSold += items.length;
+      purchases.revenue += items.reduce((total, item) => total + item.price, 0);
+    } else {
+      purchases.orders.failure++;
+    }
+  });
+  next();
 }
 
 /** Express middleware: counts every incoming request by its method, times it, and notes who made it. */
@@ -163,4 +174,4 @@ function sendMetricsPeriodically(period) {
   }, period);
 }
 
-module.exports = { requestTracker, authTracker, pizzaPurchase, sendMetricsPeriodically };
+module.exports = { requestTracker, authTracker, pizzaTracker, sendMetricsPeriodically };
