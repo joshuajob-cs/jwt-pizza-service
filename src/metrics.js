@@ -33,11 +33,21 @@ function recordLatency(ms) {
 }
 
 // Running counts of login attempts by outcome. Never reset, like the request counts.
-const authAttempts = { success: 0, failure: 0 };
+// failure = the user's fault (wrong email/password); error = ours (e.g. the DB is down).
+const authAttempts = { success: 0, failure: 0, error: 0 };
 
-/** Record one authentication attempt. */
-function authAttempt(succeeded) {
-  authAttempts[succeeded ? 'success' : 'failure']++;
+/** Express middleware for the login route: once the response is sent, its status code says how the attempt went. */
+function authTracker(req, res, next) {
+  res.on('finish', () => {
+    if (res.statusCode === 200) {
+      authAttempts.success++;
+    } else if (res.statusCode >= 500) {
+      authAttempts.error++;
+    } else {
+      authAttempts.failure++;
+    }
+  });
+  next();
 }
 
 /** Express middleware: counts every incoming request by its method and times it, then passes it on. */
@@ -111,4 +121,4 @@ function sendMetricsPeriodically(period) {
   }, period);
 }
 
-module.exports = { requestTracker, authAttempt, sendMetricsPeriodically };
+module.exports = { requestTracker, authTracker, sendMetricsPeriodically };
