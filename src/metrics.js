@@ -24,10 +24,22 @@ function getMemoryUsagePercentage() {
 // rate() turns a running count into requests/minute, and the total is the sum of the methods.
 const requests = { GET: 0, PUT: 0, POST: 0, DELETE: 0, OTHER: 0 };
 
-/** Express middleware: counts every incoming request by its method, then passes it on. */
+// Running total of time spent answering requests, in ms. Never reset, like the request counts:
+// Grafana's average latency is rate(this) / rate(sum of http_requests).
+let latencyTotalMs = 0;
+
+function recordLatency(ms) {
+  latencyTotalMs += ms;
+}
+
+/** Express middleware: counts every incoming request by its method and times it, then passes it on. */
 function requestTracker(req, res, next) {
   const method = req.method in requests ? req.method : 'OTHER';
   requests[method]++;
+  // 'finish' fires once the response has been handed to the network, so this covers the whole
+  // route: auth lookup, DB queries, and the factory call for orders.
+  const start = performance.now();
+  res.on('finish', () => recordLatency(performance.now() - start));
   next();
 }
 
@@ -80,7 +92,12 @@ async function sendToGrafana(metrics) {
 function sendMetricsPeriodically(period) {
   setInterval(() => {
     const requestPoints = Object.entries(requests).map(([method, value]) => ({ value, attributes: { method } }));
-    sendToGrafana([gauge('cpu', getCpuUsagePercentage(), '%'), gauge('memory', getMemoryUsagePercentage(), '%'), counter('http_requests', requestPoints)]);
+    sendToGrafana([
+      gauge('cpu', getCpuUsagePercentage(), '%'),
+      gauge('memory', getMemoryUsagePercentage(), '%'),
+      counter('http_requests', requestPoints),
+      counter('http_latency', [{ value: Math.round(latencyTotalMs) }], 'ms'),
+    ]);
   }, period);
 }
 
