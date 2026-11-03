@@ -32,6 +32,14 @@ function recordLatency(ms) {
   latencyTotalMs += ms;
 }
 
+// Running counts of login attempts by outcome. Never reset, like the request counts.
+const authAttempts = { success: 0, failure: 0 };
+
+/** Record one authentication attempt. */
+function authAttempt(succeeded) {
+  authAttempts[succeeded ? 'success' : 'failure']++;
+}
+
 /** Express middleware: counts every incoming request by its method and times it, then passes it on. */
 function requestTracker(req, res, next) {
   const method = req.method in requests ? req.method : 'OTHER';
@@ -92,13 +100,15 @@ async function sendToGrafana(metrics) {
 function sendMetricsPeriodically(period) {
   setInterval(() => {
     const requestPoints = Object.entries(requests).map(([method, value]) => ({ value, attributes: { method } }));
+    const authPoints = Object.entries(authAttempts).map(([result, value]) => ({ value, attributes: { result } }));
     sendToGrafana([
       gauge('cpu', getCpuUsagePercentage(), '%'),
       gauge('memory', getMemoryUsagePercentage(), '%'),
       counter('http_requests', requestPoints),
       counter('http_latency', [{ value: Math.round(latencyTotalMs) }], 'ms'),
+      counter('auth_attempts', authPoints),
     ]);
   }, period);
 }
 
-module.exports = { requestTracker, sendMetricsPeriodically };
+module.exports = { requestTracker, authAttempt, sendMetricsPeriodically };
