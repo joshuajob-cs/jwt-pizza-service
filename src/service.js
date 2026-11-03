@@ -3,11 +3,12 @@
  *
  * Every request passes through the middleware below in the order it is registered:
  *   1. express.json()  - parses a JSON body into req.body
- *   2. setAuthUser     - if an Authorization header is present, checks the token and sets req.user
- *   3. CORS headers    - lets the frontend on another origin (localhost:5173) call this service
- *   4. /api routers    - auth, user, order, franchise, docs
- *   5. '*' 404         - nothing matched
- *   6. error handler   - anything thrown (or passed to next(err)) ends up here
+ *   2. requestTracker  - counts the request by HTTP method for Grafana (metrics.js)
+ *   3. setAuthUser     - if an Authorization header is present, checks the token and sets req.user
+ *   4. CORS headers    - lets the frontend on another origin (localhost:5173) call this service
+ *   5. /api routers    - auth, user, order, franchise, docs
+ *   6. '*' 404         - nothing matched
+ *   7. error handler   - anything thrown (or passed to next(err)) ends up here
  */
 const express = require('express');
 const { authRouter, setAuthUser } = require('./routes/authRouter.js');
@@ -16,9 +17,11 @@ const franchiseRouter = require('./routes/franchiseRouter.js');
 const userRouter = require('./routes/userRouter.js');
 const version = require('./version.json');
 const config = require('./config.js');
+const metrics = require('./metrics.js');
 
 const app = express();
 app.use(express.json());
+app.use(metrics.requestTracker);
 // Runs on EVERY request, before any router, so each authenticated call costs one auth-table lookup.
 app.use(setAuthUser);
 /** CORS: echo the caller's origin back and allow the Authorization header so the browser permits the call. */

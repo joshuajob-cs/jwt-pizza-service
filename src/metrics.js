@@ -20,6 +20,18 @@ function getMemoryUsagePercentage() {
   return memoryUsage.toFixed(2);
 }
 
+// HTTP request counts by method, filled in by requestTracker and read when metrics are sent.
+const requests = { total: 0, GET: 0, PUT: 0, POST: 0, DELETE: 0 };
+
+/** Express middleware: counts every incoming request by its method, then passes it on. */
+function requestTracker(req, res, next) {
+  requests.total++;
+  if (req.method in requests) {
+    requests[req.method]++;
+  }
+  next();
+}
+
 /** One OTLP gauge: the current value of something, labelled with this service's source. */
 function gauge(name, value, unit) {
   return {
@@ -57,8 +69,9 @@ async function sendToGrafana(metrics) {
 /** Every `period` ms, gather the current metrics and send them in one batch. */
 function sendMetricsPeriodically(period) {
   setInterval(() => {
+    // TODO(his call): how the request counts go out — see the options in chat.
     sendToGrafana([gauge('cpu', getCpuUsagePercentage(), '%'), gauge('memory', getMemoryUsagePercentage(), '%')]);
   }, period);
 }
 
-module.exports = { sendMetricsPeriodically };
+module.exports = { requestTracker, sendMetricsPeriodically };
