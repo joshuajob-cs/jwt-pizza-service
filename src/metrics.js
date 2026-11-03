@@ -50,14 +50,35 @@ function authTracker(req, res, next) {
   next();
 }
 
-/** Express middleware: counts every incoming request by its method and times it, then passes it on. */
+// A user is active if they made a request in the last 15 minutes. Map of user id → last request time (ms).
+const ACTIVE_WINDOW_MS = 15 * 60 * 1000;
+const lastSeen = new Map();
+
+/** Forget users who haven't made a request within the window, and return how many are left. */
+function countActiveUsers() {
+  const cutoff = Date.now() - ACTIVE_WINDOW_MS;
+  for (const [userId, time] of lastSeen) {
+    if (time < cutoff) {
+      lastSeen.delete(userId);
+    }
+  }
+  return lastSeen.size;
+}
+
+/** Express middleware: counts every incoming request by its method, times it, and notes who made it. */
 function requestTracker(req, res, next) {
   const method = req.method in requests ? req.method : 'OTHER';
   requests[method]++;
   // 'finish' fires once the response has been handed to the network, so this covers the whole
   // route: auth lookup, DB queries, and the factory call for orders.
   const start = performance.now();
-  res.on('finish', () => recordLatency(performance.now() - start));
+  res.on('finish', () => {
+    recordLatency(performance.now() - start);
+    // setAuthUser runs after this middleware, so req.user is only known by the time the response finishes.
+    if (req.user) {
+      lastSeen.set(req.user.id, Date.now());
+    }
+  });
   next();
 }
 
@@ -117,6 +138,7 @@ function sendMetricsPeriodically(period) {
       counter('http_requests', requestPoints),
       counter('http_latency', [{ value: Math.round(latencyTotalMs) }], 'ms'),
       counter('auth_attempts', authPoints),
+      gauge('active_users', countActiveUsers(), '{users}'),
     ]);
   }, period);
 }
