@@ -65,6 +65,20 @@ function countActiveUsers() {
   return lastSeen.size;
 }
 
+// Running pizza purchase totals since the service started. Never reset, like the request counts.
+// orders: factory calls by outcome (failure = creation failure); latencyMs: total time waiting on the factory.
+const purchases = { orders: { success: 0, failure: 0 }, pizzasSold: 0, revenue: 0, latencyMs: 0 };
+
+/** Record one call to the Pizza Factory: whether it made the pizzas, how long it took, and the order's items. */
+function pizzaPurchase(success, latencyMs, items) {
+  purchases.orders[success ? 'success' : 'failure']++;
+  purchases.latencyMs += latencyMs;
+  if (success) {
+    purchases.pizzasSold += items.length;
+    purchases.revenue += items.reduce((total, item) => total + item.price, 0);
+  }
+}
+
 /** Express middleware: counts every incoming request by its method, times it, and notes who made it. */
 function requestTracker(req, res, next) {
   const method = req.method in requests ? req.method : 'OTHER';
@@ -103,7 +117,8 @@ function counter(name, points, unit = '1') {
     name,
     unit,
     sum: {
-      dataPoints: points.map(({ value, attributes }) => dataPoint('asInt', value, attributes)),
+      // asDouble, not asInt: revenue is fractions of a bitcoin.
+      dataPoints: points.map(({ value, attributes }) => dataPoint('asDouble', value, attributes)),
       aggregationTemporality: 'AGGREGATION_TEMPORALITY_CUMULATIVE',
       isMonotonic: true,
     },
@@ -132,6 +147,7 @@ function sendMetricsPeriodically(period) {
   setInterval(() => {
     const requestPoints = Object.entries(requests).map(([method, value]) => ({ value, attributes: { method } }));
     const authPoints = Object.entries(authAttempts).map(([result, value]) => ({ value, attributes: { result } }));
+    const orderPoints = Object.entries(purchases.orders).map(([result, value]) => ({ value, attributes: { result } }));
     sendToGrafana([
       gauge('cpu', getCpuUsagePercentage(), '%'),
       gauge('memory', getMemoryUsagePercentage(), '%'),
@@ -139,8 +155,12 @@ function sendMetricsPeriodically(period) {
       counter('http_latency', [{ value: Math.round(latencyTotalMs) }], 'ms'),
       counter('auth_attempts', authPoints),
       gauge('active_users', countActiveUsers(), '{users}'),
+      counter('pizza_orders', orderPoints),
+      counter('pizzas_sold', [{ value: purchases.pizzasSold }]),
+      counter('pizza_revenue', [{ value: purchases.revenue }], '{BTC}'),
+      counter('pizza_latency', [{ value: Math.round(purchases.latencyMs) }], 'ms'),
     ]);
   }, period);
 }
 
-module.exports = { requestTracker, authTracker, sendMetricsPeriodically };
+module.exports = { requestTracker, authTracker, pizzaPurchase, sendMetricsPeriodically };
