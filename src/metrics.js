@@ -20,31 +20,41 @@ function getMemoryUsagePercentage() {
   return memoryUsage.toFixed(2);
 }
 
-// HTTP request counts by method, filled in by requestTracker and read when metrics are sent.
-const requests = { total: 0, GET: 0, PUT: 0, POST: 0, DELETE: 0 };
+// Running HTTP request counts by method, since the service started. Never reset: Grafana's
+// rate() turns a running count into requests/minute, and the total is the sum of the methods.
+const requests = { GET: 0, PUT: 0, POST: 0, DELETE: 0, OTHER: 0 };
 
 /** Express middleware: counts every incoming request by its method, then passes it on. */
 function requestTracker(req, res, next) {
-  requests.total++;
-  if (req.method in requests) {
-    requests[req.method]++;
-  }
+  const method = req.method in requests ? req.method : 'OTHER';
+  requests[method]++;
   next();
 }
 
-/** One OTLP gauge: the current value of something, labelled with this service's source. */
+/** One OTLP data point stamped now, labelled with this service's source plus any extra attributes. */
+function dataPoint(valueType, value, attributes = {}) {
+  attributes = { ...attributes, source: config.metrics.source };
+  return {
+    [valueType]: value,
+    timeUnixNano: Date.now() * 1000000,
+    attributes: Object.entries(attributes).map(([key, v]) => ({ key, value: { stringValue: v } })),
+  };
+}
+
+/** One OTLP gauge: the current value of something that goes up and down (CPU %, memory %). */
 function gauge(name, value, unit) {
+  return { name, unit, gauge: { dataPoints: [dataPoint('asDouble', Number(value))] } };
+}
+
+/** One OTLP counter: a running total that only goes up, with one data point per attribute set. */
+function counter(name, points, unit = '1') {
   return {
     name,
     unit,
-    gauge: {
-      dataPoints: [
-        {
-          asDouble: Number(value),
-          timeUnixNano: Date.now() * 1000000,
-          attributes: [{ key: 'source', value: { stringValue: config.metrics.source } }],
-        },
-      ],
+    sum: {
+      dataPoints: points.map(({ value, attributes }) => dataPoint('asInt', value, attributes)),
+      aggregationTemporality: 'AGGREGATION_TEMPORALITY_CUMULATIVE',
+      isMonotonic: true,
     },
   };
 }
@@ -69,8 +79,8 @@ async function sendToGrafana(metrics) {
 /** Every `period` ms, gather the current metrics and send them in one batch. */
 function sendMetricsPeriodically(period) {
   setInterval(() => {
-    // TODO(his call): how the request counts go out — see the options in chat.
-    sendToGrafana([gauge('cpu', getCpuUsagePercentage(), '%'), gauge('memory', getMemoryUsagePercentage(), '%')]);
+    const requestPoints = Object.entries(requests).map(([method, value]) => ({ value, attributes: { method } }));
+    sendToGrafana([gauge('cpu', getCpuUsagePercentage(), '%'), gauge('memory', getMemoryUsagePercentage(), '%'), counter('http_requests', requestPoints)]);
   }, period);
 }
 
