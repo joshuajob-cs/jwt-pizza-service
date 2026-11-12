@@ -552,7 +552,7 @@ class DB {
    * Every statement the service runs passes through here, so this is the one place SQL is logged.
    */
   async query(connection, sql, params) {
-    // TODO(his call): also log params (sanitized?) and the requesting user
+    // SQL text only: params carry JWTs and password hashes, and the HTTP log already has the values that matter.
     logger.log('info', 'db', { sql });
     const [results] = await connection.execute(sql, params);
     return results;

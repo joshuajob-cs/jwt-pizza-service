@@ -3,8 +3,16 @@
  *
  * Every event carries three labels Grafana can filter on: component (which environment, from
  * config.logging.source), level (info/warn/error), and type (http, db, factory, ...).
+ *
+ * The requesting user goes in the log line, not a label: one label value per user would make a stream per user.
+ * Code like DB.query never sees req, so httpLogger saves req in AsyncLocalStorage for the rest of the request,
+ * and log() reads the user back from there.
  */
+const { AsyncLocalStorage } = require('node:async_hooks');
 const config = require('./config');
+
+// Holds the current request's req object. Every await started inside httpLogger's run() sees the same one.
+const currentRequest = new AsyncLocalStorage();
 
 class Logger {
   httpLogger = (req, res, next) => {
@@ -23,12 +31,14 @@ class Logger {
       res.send = send;
       return res.send(resBody);
     };
-    next();
+    // req, not req.user: setAuthUser sets req.user later in this same request.
+    currentRequest.run(req, next);
   };
 
   log(level, type, logData) {
     const labels = { component: config.logging.source, level, type };
-    const values = [this.nowString(), this.sanitize(logData)];
+    const userId = currentRequest.getStore()?.user?.id;
+    const values = [this.nowString(), this.sanitize({ userId, ...logData })];
     const logEvent = { streams: [{ stream: labels, values: [values] }] };
 
     this.sendLogToGrafana(logEvent);
