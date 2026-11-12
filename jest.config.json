@@ -1,6 +1,6 @@
 {
   "globalSetup": "<rootDir>/test/globalSetup.js",
-  "setupFiles": ["<rootDir>/test/useTestDatabase.js"],
+  "setupFiles": ["<rootDir>/test/useTestDatabase.js", "<rootDir>/test/silenceLogging.js"],
   "collectCoverage": true,
   "coverageReporters": ["json-summary", "text"],
   "coveragePathIgnorePatterns": ["/node_modules/", "testHelpers\\.js", "/test/"],
