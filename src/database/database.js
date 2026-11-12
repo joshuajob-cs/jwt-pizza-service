@@ -13,6 +13,7 @@
 const mysql = require('mysql2/promise');
 const bcrypt = require('bcrypt');
 const config = require('../config.js');
+const logger = require('../logger.js');
 const { StatusCodeError } = require('../endpointHelper.js');
 const { Role } = require('../model/model.js');
 const dbModel = require('./dbModel.js');
@@ -548,8 +549,11 @@ class DB {
   /**
    * Runs one SQL statement as a prepared statement (the `?`s are filled from params) and returns just the
    * result: rows for a SELECT, or an info object with `insertId` for an INSERT.
+   * Every statement the service runs passes through here, so this is the one place SQL is logged.
    */
   async query(connection, sql, params) {
+    // TODO(his call): also log params (sanitized?) and the requesting user
+    logger.log('info', 'db', { sql });
     const [results] = await connection.execute(sql, params);
     return results;
   }
