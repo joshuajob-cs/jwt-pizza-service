@@ -9,7 +9,7 @@
  * and log() reads the user back from there.
  */
 const { AsyncLocalStorage } = require('node:async_hooks');
-const config = require('./config');
+const config = require('./config.js');
 
 // Holds the current request's req object. Every await started inside httpLogger's run() sees the same one.
 const currentRequest = new AsyncLocalStorage();
