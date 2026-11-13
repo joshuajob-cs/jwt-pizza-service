@@ -116,14 +116,23 @@ orderRouter.post(
     const orderReq = req.body;
     const order = await DB.addDinerOrder(req.user, orderReq);
     const factoryReq = { diner: { id: req.user.id, name: req.user.name, email: req.user.email }, order };
-    const r = await fetch(`${config.factory.url}/api/order`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', authorization: `Bearer ${config.factory.apiKey}` },
-      body: JSON.stringify(factoryReq),
-    });
-    const j = await r.json();
+    const reqBody = JSON.stringify(factoryReq);
+    let r, j;
+    // Only the factory call is wrapped: a database error above isn't a factory failure.
+    try {
+      r = await fetch(`${config.factory.url}/api/order`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', authorization: `Bearer ${config.factory.apiKey}` },
+        body: reqBody,
+      });
+      j = await r.json();
+    } catch (error) {
+      // Factory unreachable, or its reply wasn't JSON. Log what was sent, then fail the order like a refusal.
+      logger.log('error', 'factory', { reqBody, error: error.message });
+      return res.status(500).send({ message: 'Failed to fulfill order at factory' });
+    }
     // The API key is in the headers, which aren't logged.
-    logger.log(r.ok ? 'info' : 'error', 'factory', { reqBody: JSON.stringify(factoryReq), resBody: JSON.stringify(j) });
+    logger.log(r.ok ? 'info' : 'error', 'factory', { reqBody, resBody: JSON.stringify(j) });
     if (r.ok) {
       res.send({ order, followLinkToEndChaos: j.reportUrl, jwt: j.jwt });
     } else {
