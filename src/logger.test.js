@@ -22,4 +22,10 @@ function sentLogs(type) {
     .map((stream) => ({ labels: stream.stream, data: JSON.parse(stream.values[0][1]) }));
 }
 
-// TODO: first test (yours)
+test('login password never reaches Grafana', async () => {
+  await request(app).put('/api/auth').send({ email: 'nobody@test.com', password: 'secret-password' });
+  const { reqBody } = sentLogs('http')[0].data;
+  // Both: ***** alone would still pass if the real password were logged too.
+  expect(reqBody).toContain('*****');
+  expect(reqBody).not.toContain('secret-password');
+});
