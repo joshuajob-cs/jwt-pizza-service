@@ -78,6 +78,8 @@ app.use('*', (req, res) => {
  * NOTE: sends err.stack to the client, which exposes server internals.
  */
 app.use((err, req, res, next) => {
+  // TODO: which errors count as "unhandled" — every one that lands here, or only those with no statusCode (500s)?
+  logger.log('error', 'exception', { message: err.message, statusCode: err.statusCode ?? 500, stack: err.stack });
   res.status(err.statusCode ?? 500).json({ message: err.message, stack: err.stack });
   next();
 });
