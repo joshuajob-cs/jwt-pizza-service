@@ -41,7 +41,8 @@ class Logger {
     const values = [this.nowString(), this.sanitize({ userId, ...logData })];
     const logEvent = { streams: [{ stream: labels, values: [values] }] };
 
-    this.sendLogToGrafana(logEvent);
+    // Returned so a caller that must wait for the send (the crash handler in index.js) can await it.
+    return this.sendLogToGrafana(logEvent);
   }
 
   statusToLogLevel(statusCode) {

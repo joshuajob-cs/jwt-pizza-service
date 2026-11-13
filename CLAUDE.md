@@ -52,9 +52,10 @@ deployService.sh      scp/ssh deploy to an EC2 host running pm2 (deliverable 1/2
 
 - **Routers self-document.** Each router has a `.docs` array; `service.js` concatenates them for
   `GET /api/docs`. **If you add or change an endpoint, update that router's `docs` array too.**
-- **Errors** flow through `asyncHandler` → the terminal error middleware in
-  [src/service.js:50-54](src/service.js#L50-L54), which returns `{message, stack}` with
-  `err.statusCode ?? 500`. Throw `StatusCodeError(msg, code)` for expected failures.
+- **Errors** flow through `asyncHandler` → the terminal error middleware
+  in [src/service.js](src/service.js), which returns `{message}` with `err.statusCode ?? 500` and logs 500s
+  (with the stack) to Grafana. Throw `StatusCodeError(msg, code)` for expected failures. Errors outside any
+  request are logged by the crash handlers in [src/index.js](src/index.js), which then exit.
 - **Auth**: `setAuthUser` runs as global middleware. It validates the JWT *and* checks the `auth`
   table (only the **signature segment** of the token is stored — see `getTokenSignature`). Then
   `authRouter.authenticateToken` gates individual routes. `req.user.isRole(role)` is attached at
