@@ -75,12 +75,16 @@ app.use('*', (req, res) => {
 /**
  * Express recognizes an error handler by its four parameters. Uses err.statusCode when the thrower
  * set one (see StatusCodeError), otherwise 500.
- * NOTE: sends err.stack to the client, which exposes server internals.
+ * The stack goes to the log, never to the client: it exposes file paths and code layout.
  */
 app.use((err, req, res, next) => {
-  // TODO: which errors count as "unhandled" — every one that lands here, or only those with no statusCode (500s)?
-  logger.log('error', 'exception', { message: err.message, statusCode: err.statusCode ?? 500, stack: err.stack });
-  res.status(err.statusCode ?? 500).json({ message: err.message, stack: err.stack });
+  const statusCode = err.statusCode ?? 500;
+  // Only 500s are unhandled: a StatusCodeError (404 unknown user, 403) is the service working as designed,
+  // and the HTTP log already records it as a warning.
+  if (statusCode >= 500) {
+    logger.log('error', 'exception', { message: err.message, statusCode, stack: err.stack });
+  }
+  res.status(statusCode).json({ message: err.message });
   next();
 });
 

@@ -168,7 +168,8 @@ flag them.
    builds the `UPDATE` with string interpolation instead of placeholders.
 3. ~~`DB.updateUser` re-read with `getUser(email, password)` and broke on a name-only update~~ —
    fixed: it now re-reads by id. It still changes email/password without asking for the current password.
-4. **Stack traces leak to clients** from the error handler in `service.js`.
+4. ~~Stack traces leaked to clients from the error handler in `service.js`~~ — fixed in deliverable 9: the stack goes to
+   the Grafana exception log instead.
 5. ~~`DELETE /api/user/:userId` and `GET /api/user` were stubs~~ — built in deliverable 5 (TDD), admin only.
 6. `getFranchises` interpolates `limit`/`offset` straight into the SQL string.
 7. ~~`initializeDatabase` did not await adding the default admin~~ — fixed: `DB.initialized` waits for it, and the
