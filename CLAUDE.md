@@ -165,8 +165,8 @@ flag them.
 
 1. **`DELETE /api/franchise/:franchiseId` has no `authenticateToken` and no admin check** —
    [franchiseRouter.js:97-104](src/routes/franchiseRouter.js#L97-L104). Anyone can delete a franchise.
-2. **SQL injection in `DB.updateUser`** — [database.js:78-100](src/database/database.js#L78-L100)
-   builds the `UPDATE` with string interpolation instead of placeholders.
+2. ~~SQL injection in `DB.updateUser`~~ — fixed in the deliverable 9 regrade: values are `?` params now, which also
+   keeps the password hash out of the db log.
 3. ~~`DB.updateUser` re-read with `getUser(email, password)` and broke on a name-only update~~ —
    fixed: it now re-reads by id. It still changes email/password without asking for the current password.
 4. ~~Stack traces leaked to clients from the error handler in `service.js`~~ — fixed in deliverable 9: the stack goes to

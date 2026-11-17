@@ -169,29 +169,30 @@ class DB {
 
   /**
    * Updates whichever of name, email, and password were provided, then re-reads the user.
-   * SQL: UPDATE user SET ... WHERE id=...
-   * NOTE: the values are pasted straight into the SQL string instead of using `?` placeholders, so a
-   * crafted name or email can change the query (SQL injection).
+   * SQL: UPDATE user SET name=?, email=?, password=? WHERE id=? (only the columns that were provided)
    * Re-reads by id (not by the email sent), so an update without an email still works.
    * @returns {Promise<object>} the updated user, as getUser returns it
    */
   async updateUser(userId, name, email, password) {
     const connection = await this.getConnection();
     try {
+      // Only the column names go in the SQL text; the values travel as params, so they are never logged or run as SQL.
+      const columns = [];
       const params = [];
       if (password) {
-        const hashedPassword = await bcrypt.hash(password, 10);
-        params.push(`password='${hashedPassword}'`);
+        columns.push('password=?');
+        params.push(await bcrypt.hash(password, 10));
       }
       if (email) {
-        params.push(`email='${email}'`);
+        columns.push('email=?');
+        params.push(email);
       }
       if (name) {
-        params.push(`name='${name}'`);
+        columns.push('name=?');
+        params.push(name);
       }
-      if (params.length > 0) {
-        const query = `UPDATE user SET ${params.join(', ')} WHERE id=${userId}`;
-        await this.query(connection, query);
+      if (columns.length > 0) {
+        await this.query(connection, `UPDATE user SET ${columns.join(', ')} WHERE id=?`, [...params, userId]);
       }
       const [current] = await this.query(connection, `SELECT email FROM user WHERE id=?`, [userId]);
       if (!current) {
