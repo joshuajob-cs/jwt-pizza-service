@@ -60,11 +60,12 @@ class Logger {
   }
 
   // Masks every secret field: the login password, the user's auth token, and the pizza jwt from the factory.
+  // Emails too: they're personal data, and the userId on every signed-in line already says who it was.
   // Bodies arrive stringified once or twice (res.json hands res.send a string), so the quotes carry \" or \\\";
   // (\\*") captures whichever it is and \1 demands the same everywhere else in the match.
   sanitize(logData) {
     logData = JSON.stringify(logData);
-    return logData.replace(/(\\*")(password|token|jwt)\1:\s*\1[^"\\]*\1/g, '$1$2$1:$1*****$1');
+    return logData.replace(/(\\*")(password|token|jwt|email)\1:\s*\1[^"\\]*\1/g, '$1$2$1:$1*****$1');
   }
 
   async sendLogToGrafana(event) {
