@@ -37,6 +37,13 @@ test('login password never reaches Grafana', async () => {
   expect(reqBody).not.toContain('secret-password');
 });
 
+test('auth token never reaches Grafana', async () => {
+  const { token } = await registerUser();
+  const { resBody } = sentLogs('http').find(({ data }) => data.path === '/api/auth').data;
+  expect(resBody).toContain('*****');
+  expect(resBody).not.toContain(token);
+});
+
 describe('http log', () => {
   test('level follows the status code', async () => {
     await request(app).get('/');
@@ -96,7 +103,15 @@ describe('factory log', () => {
     const [{ labels, data }] = sentLogs('factory');
     expect(labels.level).toBe('info');
     expect(data.reqBody).toContain('Veggie');
-    expect(data.resBody).toContain('factory-jwt');
+    expect(data.resBody).toContain('factory-report');
+  });
+
+  test('the pizza jwt never reaches Grafana', async () => {
+    await orderWith(() => ({ ok: true, json: async () => ({ jwt: 'factory-jwt', reportUrl: 'factory-report' }) }));
+    // The factory line logs the factory's reply; the http line logs ours, which passes the jwt on.
+    for (const { data } of [...sentLogs('factory'), ...sentLogs('http')]) {
+      expect(JSON.stringify(data)).not.toContain('factory-jwt');
+    }
   });
 
   test('a factory refusal is an error', async () => {
