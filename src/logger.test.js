@@ -44,6 +44,18 @@ test('auth token never reaches Grafana', async () => {
   expect(resBody).not.toContain(token);
 });
 
+test('password hash never reaches the db log', async () => {
+  const { user, token } = await registerUser();
+  fetchMock.mockClear();
+  await request(app).put(`/api/user/${user.id}`).set('Authorization', `Bearer ${token}`).send({ password: 'new-password' });
+  const sqls = sentLogs('db').map(({ data }) => data.sql);
+  expect(sqls.some((sql) => sql.startsWith('UPDATE user'))).toBe(true);
+  // Every bcrypt hash starts $2a$/$2b$/$2y$.
+  for (const sql of sqls) {
+    expect(sql).not.toMatch(/\$2[aby]\$/);
+  }
+});
+
 describe('http log', () => {
   test('level follows the status code', async () => {
     await request(app).get('/');
