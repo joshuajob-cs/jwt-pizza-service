@@ -44,6 +44,17 @@ test('auth token never reaches Grafana', async () => {
   expect(resBody).not.toContain(token);
 });
 
+test('emails never reach Grafana; userId identifies the user instead', async () => {
+  const { user } = await registerUser();
+  await request(app).put('/api/auth').send({ email: user.email, password: 'a' });
+  const lines = ['http', 'db'].flatMap((type) => sentLogs(type));
+  // Both: an empty line list would pass the not-contain check without testing anything.
+  expect(lines.some(({ data }) => JSON.stringify(data).includes('*****'))).toBe(true);
+  for (const { data } of lines) {
+    expect(JSON.stringify(data)).not.toContain(user.email);
+  }
+});
+
 test('password hash never reaches the db log', async () => {
   const { user, token } = await registerUser();
   fetchMock.mockClear();
@@ -116,6 +127,9 @@ describe('factory log', () => {
     expect(labels.level).toBe('info');
     expect(data.reqBody).toContain('Veggie');
     expect(data.resBody).toContain('factory-report');
+    // The diner goes to the factory with an email, but the log keeps only the id.
+    expect(data.reqBody).not.toContain('@test.com');
+    expect(data.reqBody).toContain(`"id":${data.userId}`);
   });
 
   test('the pizza jwt never reaches Grafana', async () => {
